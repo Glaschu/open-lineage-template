@@ -7,8 +7,9 @@ This wiki explains how to define data lineage using YAML files. Share these docs
 | Document | Description |
 |----------|-------------|
 | [Quick Start](quick-start.md) | Get started in 5 minutes |
-| [Datasets](datasets.md) | Define data sources and destinations |
-| [Jobs](jobs.md) | Define data transformations |
+| [Applications](applications.md) | Define logical applications and services. |
+| [Datasets](datasets.md) | Define data schemas and origins. |
+| [Jobs](jobs.md) | Define transformation logic and lineage. |
 | [Column Lineage](column-lineage.md) | Track field-level data flow |
 | [Ownership](ownership.md) | Assign data owners |
 | [Examples](examples.md) | Complete working examples |

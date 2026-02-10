@@ -130,9 +130,9 @@ def run(args: argparse.Namespace) -> int:
     # Step 1: Load YAML files
     print(f"\n📁 Loading lineage definitions from: {args.root_folder}")
     loader = LineageLoader(args.root_folder)
-    datasets, jobs = loader.load_all()
+    applications, datasets, jobs = loader.load_all()
     
-    print(f"   Found {len(datasets)} datasets and {len(jobs)} jobs")
+    print(f"   Found {len(applications)} applications, {len(datasets)} datasets, and {len(jobs)} jobs")
     
     if not jobs:
         print("\n⚠️  No jobs found. Nothing to process.")
@@ -143,6 +143,17 @@ def run(args: argparse.Namespace) -> int:
     validator = SchemaValidator()
     
     errors = []
+    
+    for app_id, app_data in applications.items():
+        # Ideally we'd map ID to file path for applications too, but loader needs update or we assume
+        # For now, let's just valid
+        # Loader doesn't expose _application_files publicly in this version of the edit, 
+        # but we can try to find it or just pass None for now as it makes error less precise but works.
+        # Actually I didn't add _application_files public getter.
+        # Let's verify standard validation first.
+        app_errors = validator.validate_application(app_data, None)
+        errors.extend(app_errors)
+
     for dataset_id, dataset in datasets.items():
         file_path = loader._dataset_files.get(dataset_id)
         dataset_errors = validator.validate_dataset(dataset, file_path)

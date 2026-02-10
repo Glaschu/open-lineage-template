@@ -1,0 +1,71 @@
+version: 1
+kind: dataset
+id: raw_users
+namespace: postgres://source-db:5432
+
+name: "raw_users"
+description: "Raw user data from the main application database. Contains PII."
+environment: "production"
+
+system:
+  name: "source-db-prod"
+  type: "postgres"
+
+structure:
+  database: "user_db"
+  schema: "public"
+  table: "raw_users"
+  namespace: "postgres://source-db:5432"
+
+schema:
+  fields:
+    - name: id
+      type: integer
+      description: "Primary key"
+    - name: email
+      type: varchar(255)
+      description: "User email address"
+    - name: first_name
+      type: varchar(100)
+    - name: last_name
+      type: varchar(100)
+    - name: created_at
+      type: timestamp
+      description: "Account creation timestamp"
+    - name: status
+      type: varchar(20)
+      description: "Account status (active, inactive, suspended)"
+
+catalogueReference:
+  alationId: "4521"
+  catalogueUrl: "https://alation.example.com/table/4521"
+  certificationType: "GOLD"
+
+cdeLinks:
+  - cdeId: "CDE-9988"
+    cdeName: "Customer Email Address"
+    cdeUrl: "https://cde.example.com/elements/9988"
+    mappingType: "EXACT_MATCH"
+
+ownership:
+  owners:
+    - name: "source-systems-team"
+      type: "TEAM"
+      email: "source-team@example.com"
+      brid: "BRID-887766"
+
+freshness:
+  lastUpdated: "2023-10-27T10:00:00Z"
+  updateFrequency: "HOURLY"
+
+dataQuality:
+  completeness: 0.99
+  accuracy: 1.0
+  lastChecked: "2023-10-27T09:00:00Z"
+  reportUrl: "https://dq.example.com/reports/raw_users"
+
+tags:
+  - pii
+  - source
+  - users
+  - gdpr-scope

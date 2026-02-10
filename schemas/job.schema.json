@@ -73,6 +73,102 @@
                 }
             }
         },
+        "applicationId": {
+            "type": "string",
+            "description": "Reference to parent Application ID"
+        },
+        "jobPath": {
+            "type": "string",
+            "description": "Path to the job executable/script"
+        },
+        "enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether the job is enabled"
+        },
+        "execution": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "BATCH",
+                        "STREAMING",
+                        "SERVICE"
+                    ]
+                },
+                "schedule": {
+                    "type": "string",
+                    "description": "Cron schedule or similar"
+                }
+            }
+        },
+        "extractorMetadata": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string"
+                },
+                "confidence": {
+                    "type": "number"
+                },
+                "toolName": {
+                    "type": "string"
+                },
+                "toolVersion": {
+                    "type": "string"
+                }
+            }
+        },
+        "reviewMetadata": {
+            "type": "object",
+            "properties": {
+                "lastReviewDate": {
+                    "type": "string"
+                },
+                "lastReviewedByBrid": {
+                    "type": "string"
+                },
+                "reviewStatus": {
+                    "type": "string"
+                }
+            }
+        },
+        "ownership": {
+            "type": "object",
+            "description": "Ownership facet",
+            "properties": {
+                "owners": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "name"
+                        ],
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "PERSON",
+                                    "TEAM",
+                                    "SERVICE"
+                                ],
+                                "default": "PERSON"
+                            },
+                            "email": {
+                                "type": "string"
+                            },
+                            "brid": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "parent": {
             "type": "object",
             "description": "Parent job for job-to-job lineage",
@@ -104,6 +200,16 @@
                     }
                 }
             }
+        },
+        "tags": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "description": {
+            "type": "string",
+            "description": "Job description"
         },
         "outputs": {
             "type": "array",
@@ -140,14 +246,7 @@
                                     },
                                     "transformation": {
                                         "type": "string",
-                                        "enum": [
-                                            "IDENTITY",
-                                            "TRANSFORM",
-                                            "AGGREGATE",
-                                            "FILTER"
-                                        ],
-                                        "default": "IDENTITY",
-                                        "description": "Type of transformation"
+                                        "description": "Type of transformation (e.g., IDENTITY, MASKED)"
                                     },
                                     "description": {
                                         "type": "string",

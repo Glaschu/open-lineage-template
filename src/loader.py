@@ -25,58 +25,61 @@ class LineageLoader:
             root_folder: Path to the lineage folder containing datasets/ and jobs/
         """
         self.root_folder = Path(root_folder)
-        self.datasets_folder = self.root_folder / "datasets"
+        self.applications_folder = self.root_folder / "application"
+        self.datasets_folder = self.root_folder / "dataset"
         self.jobs_folder = self.root_folder / "jobs"
         
-        # Cache for loaded datasets (id -> definition)
+        # Cache for loaded entities
+        self._applications: Dict[str, dict] = {}
         self._datasets: Dict[str, dict] = {}
-        self._dataset_files: Dict[str, Path] = {}  # id -> file path
+        self._dataset_files: Dict[str, Path] = {}
         
         # Cache for loaded jobs
         self._jobs: List[Tuple[Path, dict]] = []
     
-    def load_all(self) -> Tuple[Dict[str, dict], List[Tuple[Path, dict]]]:
+    def load_all(self) -> Tuple[Dict[str, dict], Dict[str, dict], List[Tuple[Path, dict]]]:
         """
-        Load all datasets and jobs from the lineage folder.
+        Load all applications, datasets, and jobs.
         
         Returns:
-            Tuple of (datasets dict, list of (file_path, job_data) tuples)
-            
-        Raises:
-            YAMLParseError: If any YAML file cannot be parsed
-            FileNotFoundError: If required folders don't exist
+            Tuple of (applications dict, datasets dict, list of (file_path, job_data) tuples)
         """
         self._validate_folder_structure()
+        self._load_applications()
         self._load_datasets()
         self._load_jobs()
         
-        return self._datasets, self._jobs
+        return self._applications, self._datasets, self._jobs
     
     def _validate_folder_structure(self) -> None:
         """Validate that the required folder structure exists."""
         if not self.root_folder.exists():
-            raise FileNotFoundError(
-                f"Lineage folder not found: {self.root_folder}\n"
-                f"Expected folder structure:\n"
-                f"  {self.root_folder}/\n"
-                f"    ├── datasets/\n"
-                f"    │   └── *.yaml\n"
-                f"    └── jobs/\n"
-                f"        └── *.yaml"
-            )
-        
-        if not self.datasets_folder.exists():
-            raise FileNotFoundError(
-                f"Datasets folder not found: {self.datasets_folder}\n"
-                f"Create this folder and add dataset YAML files."
-            )
-        
-        if not self.jobs_folder.exists():
-            raise FileNotFoundError(
-                f"Jobs folder not found: {self.jobs_folder}\n"
-                f"Create this folder and add job YAML files."
-            )
+            raise FileNotFoundError(f"Lineage folder not found: {self.root_folder}")
+            
+        # Check for new structure directories
+        for folder in [self.applications_folder, self.datasets_folder, self.jobs_folder]:
+            if not folder.exists():
+                print(f"Warning: Folder not found: {folder}. Creating it...")
+                folder.mkdir(parents=True, exist_ok=True)
     
+    def _load_applications(self) -> None:
+        """Load all application YAML files recursively."""
+        yaml_files = list(self.applications_folder.rglob("*.yaml")) + \
+                     list(self.applications_folder.rglob("*.yml"))
+        
+        for file_path in yaml_files:
+            data = self._load_yaml_file(file_path)
+            if data.get("kind") != "application":
+                continue
+                
+            app_id = data.get("id")
+            if not app_id:
+                print(f"Warning: Application in {file_path} missing ID, skipping.")
+                continue
+                
+            self._applications[app_id] = data
+            print(f"  Loaded application: {app_id}")
+
     def _load_datasets(self) -> None:
         """Load all dataset YAML files recursively."""
         yaml_files = list(self.datasets_folder.rglob("*.yaml")) + \
@@ -91,10 +94,7 @@ class LineageLoader:
             
             # Validate it's a dataset
             if data.get("kind") != "dataset":
-                raise YAMLParseError(
-                    f"Expected 'kind: dataset', got '{data.get('kind', 'missing')}'",
-                    file_path=file_path
-                )
+                continue
             
             dataset_id = data.get("id")
             if not dataset_id:
@@ -105,16 +105,12 @@ class LineageLoader:
             
             # Check for duplicate IDs
             if dataset_id in self._datasets:
-                raise YAMLParseError(
-                    f"Duplicate dataset ID '{dataset_id}' found.\n"
-                    f"First defined in: {self._dataset_files[dataset_id]}\n"
-                    f"Also defined in: {file_path}",
-                    file_path=file_path
-                )
+                print(f"Warning: Duplicate dataset ID '{dataset_id}' in {file_path}. Using first found.")
+                continue
             
             self._datasets[dataset_id] = data
             self._dataset_files[dataset_id] = file_path
-            print(f"  Loaded dataset: {dataset_id} ({file_path.relative_to(self.root_folder)})")
+            print(f"  Loaded dataset: {dataset_id}")
     
     def _load_jobs(self) -> None:
         """Load all job YAML files recursively."""
@@ -128,15 +124,11 @@ class LineageLoader:
         for file_path in yaml_files:
             data = self._load_yaml_file(file_path)
             
-            # Validate it's a job
             if data.get("kind") != "job":
-                raise YAMLParseError(
-                    f"Expected 'kind: job', got '{data.get('kind', 'missing')}'",
-                    file_path=file_path
-                )
+                continue
             
             self._jobs.append((file_path, data))
-            print(f"  Loaded job: {data.get('id', 'unknown')} ({file_path.relative_to(self.root_folder)})")
+            print(f"  Loaded job: {data.get('id', 'unknown')}")
     
     def _load_yaml_file(self, file_path: Path) -> dict:
         """
@@ -211,6 +203,10 @@ class LineageLoader:
         
         return self._datasets[ref_id]
     
+    def get_application(self, app_id: str) -> Optional[dict]:
+        """Get an application definition by ID."""
+        return self._applications.get(app_id)
+
     def get_dataset_ids(self) -> List[str]:
         """Get list of all loaded dataset IDs."""
         return list(self._datasets.keys())

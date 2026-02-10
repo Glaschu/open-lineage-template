@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Job, Dataset, ColumnMapping } from '../types';
+import type { Job, Dataset, ColumnMapping, Owner } from '../types';
 import { ColumnLineageEditor } from './ColumnLineageEditor';
 import './forms.css';
 
@@ -23,10 +23,6 @@ export function JobForm({ job, datasets, onSave, onCancel }: JobFormProps) {
 
         if (!data.id.trim()) {
             setError('Job ID is required');
-            return;
-        }
-        if (!data.namespace.trim()) {
-            setError('Namespace is required');
             return;
         }
         if (!data.name.trim()) {
@@ -75,6 +71,35 @@ export function JobForm({ job, datasets, onSave, onCancel }: JobFormProps) {
         setEditingColumnLineage(null);
     };
 
+    const addOwner = () => {
+        setData(prev => ({
+            ...prev,
+            ownership: {
+                owners: [...(prev.ownership?.owners || []), { name: '', type: 'TEAM' as const }]
+            }
+        }));
+    };
+
+    const updateOwner = (index: number, owner: Partial<Owner>) => {
+        setData(prev => ({
+            ...prev,
+            ownership: {
+                owners: (prev.ownership?.owners || []).map((o, i) =>
+                    i === index ? { ...o, ...owner } : o
+                )
+            }
+        }));
+    };
+
+    const removeOwner = (index: number) => {
+        setData(prev => ({
+            ...prev,
+            ownership: {
+                owners: (prev.ownership?.owners || []).filter((_, i) => i !== index)
+            }
+        }));
+    };
+
     const getDatasetById = (id: string) => datasets.find(d => d.id === id);
     const inputDatasets = data.inputs.map(i => getDatasetById(i.ref)).filter(Boolean) as Dataset[];
 
@@ -104,19 +129,17 @@ export function JobForm({ job, datasets, onSave, onCancel }: JobFormProps) {
                         <input
                             type="text"
                             value={data.id}
-                            onChange={e => setData(prev => ({ ...prev, id: e.target.value.replace(/[^a-zA-Z0-9_-]/g, '_') }))}
+                            onChange={e => setData(prev => ({ ...prev, id: e.target.value.replace(/[^a-zA-Z0-9_.-]/g, '_') }))}
                             placeholder="e.g., users_etl"
                         />
                     </label>
-                </div>
-                <div className="form-row">
                     <label>
-                        Namespace *
+                        Application ID
                         <input
                             type="text"
-                            value={data.namespace}
-                            onChange={e => setData(prev => ({ ...prev, namespace: e.target.value }))}
-                            placeholder='e.g., data-platform'
+                            value={data.applicationId || ''}
+                            onChange={e => setData(prev => ({ ...prev, applicationId: e.target.value }))}
+                            placeholder="e.g., crm.customer_portal"
                         />
                     </label>
                 </div>
@@ -135,10 +158,10 @@ export function JobForm({ job, datasets, onSave, onCancel }: JobFormProps) {
                     <label>
                         Description
                         <textarea
-                            value={data.documentation?.description || ''}
+                            value={data.description || ''}
                             onChange={e => setData(prev => ({
                                 ...prev,
-                                documentation: { description: e.target.value }
+                                description: e.target.value
                             }))}
                             placeholder="What does this job do?"
                         />
@@ -147,15 +170,18 @@ export function JobForm({ job, datasets, onSave, onCancel }: JobFormProps) {
             </div>
 
             <div className="form-section">
-                <h3>Job Type</h3>
+                <h3>Job Execution</h3>
                 <div className="form-row inline">
                     <label>
-                        Processing Type
+                        Execution Type
                         <select
-                            value={data.jobType?.processingType || 'BATCH'}
+                            value={data.execution?.type || 'BATCH'}
                             onChange={e => setData(prev => ({
                                 ...prev,
-                                jobType: { ...prev.jobType, processingType: e.target.value as 'BATCH' | 'STREAMING' | 'SERVICE' }
+                                execution: {
+                                    schedule: prev.execution?.schedule,
+                                    type: e.target.value
+                                }
                             }))}
                         >
                             <option value="BATCH">Batch</option>
@@ -164,16 +190,124 @@ export function JobForm({ job, datasets, onSave, onCancel }: JobFormProps) {
                         </select>
                     </label>
                     <label>
-                        Job Type
+                        Schedule
                         <input
                             type="text"
-                            value={data.jobType?.jobType || ''}
+                            value={data.execution?.schedule || ''}
                             onChange={e => setData(prev => ({
                                 ...prev,
-                                jobType: { ...prev.jobType, processingType: prev.jobType?.processingType || 'BATCH', jobType: e.target.value }
+                                execution: {
+                                    type: prev.execution?.type || 'BATCH',
+                                    schedule: e.target.value
+                                }
                             }))}
-                            placeholder="e.g., ETL, MODEL"
+                            placeholder="e.g., 0 0 * * *"
                         />
+                    </label>
+                </div>
+                <label>
+                    <input
+                        type="checkbox"
+                        checked={data.enabled !== false}
+                        onChange={e => setData(prev => ({ ...prev, enabled: e.target.checked }))}
+                    />
+                    Enabled
+                </label>
+            </div>
+
+            <div className="form-section">
+                <h3>Extractor Metadata</h3>
+                <div className="form-row">
+                    <label>
+                        Type
+                        <select
+                            value={data.extractorMetadata?.type || 'MANUAL'}
+                            onChange={e => setData(prev => ({
+                                ...prev,
+                                extractorMetadata: {
+                                    ...prev.extractorMetadata,
+                                    type: e.target.value
+                                }
+                            }))}
+                        >
+                            <option value="MANUAL">Manual</option>
+                            <option value="3RD_PARTY_TOOL">3rd Party</option>
+                            <option value="GEN_AI">GenAI</option>
+                        </select>
+                    </label>
+                    <label>
+                        Tool Name
+                        <input
+                            type="text"
+                            value={data.extractorMetadata?.toolName || ''}
+                            onChange={e => setData(prev => ({
+                                ...prev,
+                                extractorMetadata: {
+                                    ...prev.extractorMetadata,
+                                    type: prev.extractorMetadata?.type || 'MANUAL',
+                                    toolName: e.target.value
+                                }
+                            }))}
+                            placeholder="e.g., dbt"
+                        />
+                    </label>
+                    <label>
+                        Tool Version
+                        <input
+                            type="text"
+                            value={data.extractorMetadata?.toolVersion || ''}
+                            onChange={e => setData(prev => ({
+                                ...prev,
+                                extractorMetadata: {
+                                    ...prev.extractorMetadata,
+                                    type: prev.extractorMetadata?.type || 'MANUAL',
+                                    toolVersion: e.target.value
+                                }
+                            }))}
+                            placeholder="e.g., 1.0.0"
+                        />
+                    </label>
+                </div>
+            </div>
+
+            <div className="form-section">
+                <h3>Review Metadata</h3>
+                <div className="form-row">
+                    <label>
+                        Last Review Date
+                        <input
+                            type="date"
+                            value={data.reviewMetadata?.lastReviewDate ? new Date(data.reviewMetadata.lastReviewDate).toISOString().split('T')[0] : ''}
+                            onChange={e => setData(prev => ({
+                                ...prev,
+                                reviewMetadata: { ...prev.reviewMetadata, lastReviewDate: new Date(e.target.value).toISOString() }
+                            }))}
+                        />
+                    </label>
+                    <label>
+                        Reviewer BRID
+                        <input
+                            type="text"
+                            value={data.reviewMetadata?.lastReviewedByBrid || ''}
+                            onChange={e => setData(prev => ({
+                                ...prev,
+                                reviewMetadata: { ...prev.reviewMetadata, lastReviewedByBrid: e.target.value }
+                            }))}
+                        />
+                    </label>
+                    <label>
+                        Status
+                        <select
+                            value={data.reviewMetadata?.reviewStatus || 'PENDING'}
+                            onChange={e => setData(prev => ({
+                                ...prev,
+                                reviewMetadata: { ...prev.reviewMetadata, reviewStatus: e.target.value as any }
+                            }))}
+                        >
+                            <option value="PENDING">Pending</option>
+                            <option value="APPROVED">Approved</option>
+                            <option value="REJECTED">Rejected</option>
+                        </select>
                     </label>
                 </div>
             </div>
@@ -236,6 +370,43 @@ export function JobForm({ job, datasets, onSave, onCancel }: JobFormProps) {
                         })}
                     </div>
                 )}
+            </div>
+
+            <div className="form-section">
+                <h3>Ownership</h3>
+                {(data.ownership?.owners || []).map((owner, i) => (
+                    <div key={i} className="form-row inline">
+                        <input
+                            type="text"
+                            value={owner.name}
+                            onChange={e => updateOwner(i, { name: e.target.value })}
+                            placeholder="Owner name"
+                        />
+                        <select
+                            value={owner.type}
+                            onChange={e => updateOwner(i, { type: e.target.value as Owner['type'] })}
+                        >
+                            <option value="TEAM">Team</option>
+                            <option value="PERSON">Person</option>
+                            <option value="SERVICE">Service</option>
+                        </select>
+                        <input
+                            type="text"
+                            value={owner.brid || ''}
+                            onChange={e => updateOwner(i, { brid: e.target.value })}
+                            placeholder="BRID"
+                            style={{ width: '80px' }}
+                        />
+                        <input
+                            type="text"
+                            value={owner.email || ''}
+                            onChange={e => updateOwner(i, { email: e.target.value })}
+                            placeholder="Email"
+                        />
+                        <button type="button" className="btn-small danger" onClick={() => removeOwner(i)}>×</button>
+                    </div>
+                ))}
+                <button type="button" className="btn-secondary" onClick={addOwner}>+ Add Owner</button>
             </div>
 
             <div className="form-actions">

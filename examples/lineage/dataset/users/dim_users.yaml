@@ -1,0 +1,67 @@
+version: 1
+kind: dataset
+id: dim_users
+namespace: snowflake://warehouse:5432
+
+name: "dim_users"
+description: "User dimension table for analytics queries. Contains anonymized data."
+environment: "production"
+
+system:
+  name: "data-warehouse-prod"
+  type: "snowflake"
+
+structure:
+  database: "analytics"
+  schema: "public"
+  table: "dim_users"
+  namespace: "snowflake://warehouse:5432"
+
+schema:
+  fields:
+    - name: user_id
+      type: integer
+      description: "Surrogate key"
+    - name: email_hash
+      type: varchar(64)
+      description: "SHA256 hash of email (anonymized)"
+    - name: full_name
+      type: varchar(200)
+      description: "Concatenated first and last name"
+    - name: account_age_days
+      type: integer
+      description: "Days since account creation"
+    - name: is_active
+      type: boolean
+      description: "Whether account is currently active"
+    - name: processed_at
+      type: timestamp
+      description: "ETL processing timestamp"
+
+catalogueReference:
+  alationId: "9021"
+  catalogueUrl: "https://alation.example.com/table/9021"
+  certificationType: "SILVER"
+
+ownership:
+  owners:
+    - name: "Analytics Team"
+      type: "TEAM"
+      email: "analytics@example.com"
+      brid: "BRID-998877"
+
+freshness:
+  lastUpdated: "2023-10-27T10:15:00Z"
+  updateFrequency: "DAILY"
+
+dataQuality:
+  completeness: 1.0
+  accuracy: 1.0
+  lastChecked: "2023-10-27T10:20:00Z"
+  reportUrl: "https://dq.example.com/reports/dim_users"
+
+tags:
+  - warehouse
+  - dimension
+  - users
+  - analytics-ready

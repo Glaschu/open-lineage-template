@@ -120,6 +120,101 @@
             "type": "string",
             "description": "Human-readable description of the dataset"
         },
+        "environment": {
+            "type": "string",
+            "description": "Environment (e.g., production, staging)"
+        },
+        "system": {
+            "type": "object",
+            "description": "System details",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "catalogueReference": {
+            "type": "object",
+            "description": "Data Catalogue reference",
+            "properties": {
+                "alationId": {
+                    "type": "string"
+                },
+                "catalogueUrl": {
+                    "type": "string"
+                },
+                "certificationType": {
+                    "type": "string"
+                }
+            }
+        },
+        "cdeLinks": {
+            "type": "array",
+            "description": "Critical Data Element links",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "cdeId": {
+                        "type": "string"
+                    },
+                    "cdeUrl": {
+                        "type": "string"
+                    },
+                    "mappingType": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dataQuality": {
+            "type": "object",
+            "description": "Data Quality metrics",
+            "properties": {
+                "completeness": {
+                    "type": "number"
+                },
+                "accuracy": {
+                    "type": "number"
+                },
+                "lastChecked": {
+                    "type": "string"
+                },
+                "reportUrl": {
+                    "type": "string"
+                }
+            }
+        },
+        "freshness": {
+            "type": "object",
+            "properties": {
+                "lastUpdated": {
+                    "type": "string"
+                },
+                "updateFrequency": {
+                    "type": "string"
+                }
+            }
+        },
+        "structure": {
+            "type": "object",
+            "properties": {
+                "database": {
+                    "type": "string"
+                },
+                "schema": {
+                    "type": "string"
+                },
+                "table": {
+                    "type": "string"
+                },
+                "namespace": {
+                    "type": "string"
+                }
+            }
+        },
         "tags": {
             "type": "array",
             "items": {

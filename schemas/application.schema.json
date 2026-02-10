@@ -1,0 +1,107 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://openlineage-yaml-tool/application.schema.json",
+    "title": "Application Definition",
+    "description": "Schema for defining an Application in the OpenLineage YAML tool",
+    "type": "object",
+    "required": [
+        "version",
+        "kind",
+        "id",
+        "name"
+    ],
+    "properties": {
+        "version": {
+            "type": "integer",
+            "const": 1,
+            "description": "Schema version"
+        },
+        "kind": {
+            "type": "string",
+            "const": "application",
+            "description": "Must be 'application'"
+        },
+        "id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_.-]+$",
+            "description": "Unique identifier for this application"
+        },
+        "name": {
+            "type": "string",
+            "description": "Application name"
+        },
+        "description": {
+            "type": "string",
+            "description": "Application description"
+        },
+        "owner": {
+            "type": "object",
+            "properties": {
+                "team": {
+                    "type": "string"
+                },
+                "brid": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "versions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "type": "string"
+                    },
+                    "releaseDate": {
+                        "type": "string"
+                    },
+                    "changeLog": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "environments": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "url": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "jobs": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "ref"
+                ],
+                "properties": {
+                    "ref": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "tags": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "additionalProperties": false
+}

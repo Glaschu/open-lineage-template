@@ -1,0 +1,29 @@
+version: 1
+kind: application
+id: ecommerce.order_processing_service
+name: "Order Processing Service"
+description: "Core service for managing customer orders and transactions."
+owner:
+  team: "Commerce Team"
+  brid: "BRID-778899"
+  email: "commerce-team@example.com"
+
+versions:
+  - version: "2.0.0"
+    releaseDate: "2023-02-15"
+    changeLog: "Major update to order processing logic"
+
+environments:
+  - name: "development"
+    url: "https://dev.api.orders.example.com"
+    description: "Dev environment"
+  - name: "production"
+    url: "https://api.orders.example.com"
+    description: "Production environment"
+
+jobs:
+  - ref: orders_etl
+
+tags:
+  - core-commerce
+  - transactions

@@ -1,0 +1,32 @@
+version: 1
+kind: application
+id: data_platform.user_data_service
+name: "User Data Service"
+description: "Core service for managing user data intake and processing."
+owner:
+  team: "Data Platform Team"
+  brid: "BRID-123456"
+  email: "data-platform@example.com"
+
+versions:
+  - version: "1.0.0"
+    releaseDate: "2023-01-01"
+    changeLog: "Initial release"
+  - version: "1.1.0"
+    releaseDate: "2023-06-15"
+    changeLog: "Added GDPR compliance features"
+
+environments:
+  - name: "development"
+    url: "https://dev.api.users.example.com"
+    description: "Dev environment"
+  - name: "production"
+    url: "https://api.users.example.com"
+    description: "Production environment"
+
+jobs:
+  - ref: users_etl
+
+tags:
+  - core-data
+  - pii-handling

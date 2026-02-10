@@ -2,61 +2,42 @@
 
 Jobs represent data transformations that read from input datasets and write to output datasets.
 
-## Basic Structure
-
-```yaml
-version: 1
-kind: job
-namespace: <orchestrator>
-name: <job-name>
-inputs:
-  - ref: <path-to-dataset>
-outputs:
-  - ref: <path-to-dataset>
-```
-
-## Full Example
+## Full Enterprise Example
 
 ```yaml
 version: 1
 kind: job
 id: user_etl                     # Optional, defaults to filename
-namespace: airflow               # Required: Orchestrator/system
 name: daily_user_sync            # Required: Job name
+jobPath: /etl/users/sync.py
+enabled: true
 
-jobType:
-  processingType: BATCH          # BATCH, STREAMING, or SERVICE
-  integration: SPARK
-  jobType: QUERY
+applicationId: data_platform.user_service
 
-documentation:
-  description: |
-    Daily ETL job that syncs user data from production 
-    database to the analytics warehouse.
+execution:
+  type: BATCH
+  schedule: "0 2 * * *"
+
+extractorMetadata:
+  type: manual
+  confidence: 1.0
+  toolName: Lineage Designer
+
+reviewMetadata:
+  lastReviewDate: "2023-10-01"
+  lastReviewedByBrid: "BRID-123456"
+  reviewStatus: APPROVED
 
 inputs:
-  - ref: datasets/raw_users.yaml
-  - ref: datasets/raw_orders.yaml
+  - ref: raw_users
 
 outputs:
-  - ref: datasets/dim_users.yaml
+  - ref: dim_users
     columnLineage:
       user_id:
         - inputField: id
-          inputDataset: datasets/raw_users.yaml
+          inputDataset: raw_users
           transformation: IDENTITY
-      full_name:
-        - inputField: first_name
-          inputDataset: datasets/raw_users.yaml
-          transformation: TRANSFORM
-        - inputField: last_name
-          inputDataset: datasets/raw_users.yaml
-          transformation: TRANSFORM
-      order_count:
-        - inputField: user_id
-          inputDataset: datasets/raw_orders.yaml
-          transformation: AGGREGATE
-          description: COUNT of orders per user
 ```
 
 ## Field Reference
@@ -79,6 +60,35 @@ outputs:
 | `id` | string | Unique identifier |
 | `jobType` | object | Processing type info |
 | `documentation` | object | Description and docs |
+
+### Core Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `applicationId` | string | Reference to parent `Application` |
+| `execution` | object | Schedule and type (BATCH/STREAMING) |
+| `jobPath` | string | Path to executable code |
+| `enabled` | boolean | Whether job is active |
+
+### Enterprise Metadata
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `extractorMetadata` | object | Tool used to extract lineage |
+| `reviewMetadata` | object | Governance review status |
+| `ownership` | object | Enhanced ownership (BRID, email) |
+
+---
+
+## Application Link
+
+Link jobs to their parent application for logical grouping:
+
+```yaml
+applicationId: <application-id>
+```
+
+The application ID must match an existing `Application` entity.
 
 ---
 

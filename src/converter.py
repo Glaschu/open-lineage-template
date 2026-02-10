@@ -4,12 +4,15 @@ Converter module for transforming YAML definitions to OpenLineage events.
 Generates proper OpenLineage RunEvents with all required fields and facets.
 """
 
+
 import uuid
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Tuple, Any, Optional
 
 from .loader import LineageLoader
+from .plugins import get_registry, init_plugins
 from .exceptions import DatasetReferenceError
 
 
@@ -49,6 +52,10 @@ class OpenLineageConverter:
         self.loader = loader
         self.producer = producer or DEFAULT_PRODUCER
         self.event_time = event_time
+        
+        # Initialize plugins
+        init_plugins(loader.root_folder)
+        self.registry = get_registry()
     
     def convert_all(self) -> List[dict]:
         """
@@ -99,26 +106,38 @@ class OpenLineageConverter:
             "runId": str(uuid.uuid4())
         }
         
+        facets = {}
+        
         # Add parent facet if specified
         if "parent" in job_data:
-            run["facets"] = {
-                "parent": self._build_facet("parent", {
-                    "job": {
-                        "namespace": job_data["parent"]["namespace"],
-                        "name": job_data["parent"]["name"]
-                    },
-                    "run": {
-                        "runId": str(uuid.uuid4())  # Parent run ID
-                    }
-                })
-            }
+            facets["parent"] = self._build_facet("parent", {
+                "job": {
+                    "namespace": job_data["parent"]["namespace"],
+                    "name": job_data["parent"]["name"]
+                },
+                "run": {
+                    "runId": str(uuid.uuid4())  # Parent run ID
+                }
+            })
+            
+        # Add custom run facets
+        for name, plugin in self.registry._run_facets.items():
+            if name in job_data:
+                errors = plugin.validate(job_data[name])
+                if errors:
+                    logging.warning(f"Validation errors for run facet {name}: {errors}")
+                else:
+                    facets[name] = plugin.to_openlineage(job_data[name])
+        
+        if facets:
+            run["facets"] = facets
         
         return run
     
     def _build_job(self, job_data: dict) -> dict:
         """Build the job section with namespace, name, and facets."""
         job = {
-            "namespace": job_data["namespace"],
+            "namespace": job_data.get("namespace", "default"), # robust fallback
             "name": job_data["name"]
         }
         
@@ -138,6 +157,45 @@ class OpenLineageConverter:
                 "description": job_data["documentation"].get("description", ""),
                 "contentType": job_data["documentation"].get("contentType", "text/plain"),
             })
+        elif "description" in job_data:
+             facets["documentation"] = self._build_facet("documentation", {
+                "description": job_data["description"],
+                "contentType": "text/plain",
+            })
+            
+        # Application Facet (Logic to resolve applicationId)
+        if "applicationId" in job_data and "application" not in job_data:
+            app_id = job_data["applicationId"]
+            app_data = self.loader.get_application(app_id)
+            if app_data:
+                # Inject application data into job_data so the plugin can pick it up
+                # Or manually use the plugin here. 
+                # Let's manually use the plugin if registered, to handle transformation
+                app_plugin = self.registry.get_job_facet("application")
+                if app_plugin:
+                    facets["application"] = app_plugin.to_openlineage(app_data)
+        
+        # Custom Job Facets (extractorMetadata, reviewMetadata, etc.)
+        # Map YAML fields to facet names if they differ, or rely on plugin name matching field name
+        # Our example_facets.py uses 'extractor' plugin for 'extractorMetadata' logic? 
+        # No, the plugin transform expects the data.
+        
+        # Check for registered job facets
+        for name, plugin in self.registry._job_facets.items():
+            # Handle mapping: YAML field might be 'extractorMetadata' but plugin is 'extractor'
+            # For now, let's check if the plugin name exists in job_data, OR if there's a convention
+            
+            # Specific mappings for our known custom facets
+            data = None
+            if name == "extractor" and "extractorMetadata" in job_data:
+                data = job_data["extractorMetadata"]
+            elif name == "review" and "reviewMetadata" in job_data:
+                data = job_data["reviewMetadata"]
+            elif name in job_data:
+                data = job_data[name]
+                
+            if data:
+                facets[name] = plugin.to_openlineage(data)
         
         if facets:
             job["facets"] = facets
@@ -157,7 +215,7 @@ class OpenLineageConverter:
             dataset = self.loader.resolve_dataset_reference(ref_id, job_file)
             
             input_dataset = {
-                "namespace": dataset["namespace"],
+                "namespace": dataset.get("namespace", "default"),
                 "name": dataset["name"],
             }
             
@@ -182,7 +240,7 @@ class OpenLineageConverter:
             dataset = self.loader.resolve_dataset_reference(ref_id, job_file)
             
             output_dataset = {
-                "namespace": dataset["namespace"],
+                "namespace": dataset.get("namespace", "default"),
                 "name": dataset["name"],
             }
             
@@ -226,7 +284,8 @@ class OpenLineageConverter:
                 "owners": [
                     {
                         "name": owner["name"],
-                        "type": owner.get("type", "PERSON")
+                        "type": owner.get("type", "PERSON"),
+                         **({"email": owner["email"]} if "email" in owner else {})
                     }
                     for owner in dataset["ownership"].get("owners", [])
                 ]
@@ -235,9 +294,30 @@ class OpenLineageConverter:
         # DataSource facet
         if "dataSource" in dataset:
             facets["dataSource"] = self._build_facet("dataSource", {
-                "name": dataset["dataSource"].get("name", dataset["namespace"]),
-                "uri": dataset["dataSource"].get("uri", dataset["namespace"]),
+                "name": dataset["dataSource"].get("name", dataset.get("namespace", "default")),
+                "uri": dataset["dataSource"].get("uri", dataset.get("namespace", "default")),
             })
+        elif "system" in dataset: # fallback to system for datasource info if not explicit
+             facets["dataSource"] = self._build_facet("dataSource", {
+                "name": dataset["system"].get("name"),
+                "uri": dataset.get("namespace"),
+            })
+            
+        # Custom Dataset Facets
+        for name, plugin in self.registry._dataset_facets.items():
+            # Specific mappings
+            data = None
+            if name == "catalogue" and "catalogueReference" in dataset:
+                data = dataset["catalogueReference"]
+            elif name == "cde" and "cdeLinks" in dataset:
+                data = dataset["cdeLinks"]
+                # Wrap list if needed, plugin checks for 'cdeLinks' key or raw list
+                # Passed as is
+            elif name in dataset:
+                data = dataset[name]
+            
+            if data:
+                facets[name] = plugin.to_openlineage(data)
         
         return facets
     
@@ -270,7 +350,7 @@ class OpenLineageConverter:
                 subtype = "IDENTITY" if transformation_type == "IDENTITY" else transformation_type
                 
                 input_field = {
-                    "namespace": input_dataset["namespace"],
+                    "namespace": input_dataset.get("namespace", "default"),
                     "name": input_dataset["name"],
                     "field": mapping["inputField"],
                     "transformations": [{

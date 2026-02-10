@@ -1,0 +1,102 @@
+# Enterprise OpenLineage Job Template
+# STRICTLY FOLLOW THIS TEMPLATE FOR ALL NEW LINEAGE DEFINITIONS
+# Replace all ${VAR_NAME} placeholders with actual values.
+
+version: 1
+kind: job
+# Unique identifier for the job: namespace.name
+id: ${APPLICATION_NAMESPACE}.${JOB_NAME}
+
+# Core Metadata
+namespace: ${APPLICATION_NAMESPACE}
+name: ${JOB_NAME}
+
+jobType:
+  processingType: ${BATCH_OR_STREAMING} # e.g., BATCH, STREAMING
+  integration: ${INTEGRATION_TOOL}      # e.g., SPARK, SQL, AIRFLOW
+  jobType: ${JOB_TYPE_CATEGORY}         # e.g., ETL, MODEL_TRAINING, MAINTENANCE
+
+description: |
+  ${JOB_DESCRIPTION}
+  
+  Business Logic: ${BUSINESS_LOGIC_SUMMARY}
+
+# Ownership & Stewardship
+ownership:
+  owners:
+    - name: ${OWNER_TEAM_OR_BRID}
+      type: TEAM # or PERSON
+    - name: ${STEWARD_BRID}
+      type: STEWARD
+
+# Custom Facets for Enterprise Compliance
+facets:
+  # Alation Technical Catalogue Integration
+  alation_catalogue:
+    _producer: "https://github.com/OpenLineage/OpenLineage/tree/main/integration/common/openlineage-yml"
+    _schemaURL: "https://openlineage.io/spec/facets/1-0-0/AlationCatalogueDatasetFacet.json"
+    technical_catalogue_id: "${ALATION_CATALOGUE_ID}"
+    deep_link: "${ALATION_URL_DEEP_LINK}"
+    catalog_name: "${ALATION_CATALOG_NAME}"
+
+  # Extractor & Generation Source Metadata
+  # Captures how this lineage was generated (Manual, via Tool, or GenAI)
+  extractor_meta:
+    _producer: "https://github.com/OpenLineage/OpenLineage/tree/main/integration/common/openlineage-yml"
+    _schemaURL: "https://openlineage.io/spec/facets/1-0-0/ExtractorMetaFacet.json"
+    type: "${EXTRACTOR_TYPE}"           # Options: MANUAL, 3RD_PARTY_TOOL, GEN_AI_MODEL
+    tool_name: "${TOOL_NAME_OR_MODEL}"  # e.g., "dbt", "ChatGPT-4", "GitHub CoPilot"
+    tool_version: "${TOOL_VERSION}"     # e.g., "1.0.0", "gpt-4-0613"
+    generation_date: "${GENERATION_DATE_ISO8601}"
+
+  # Review & Audit Metadata
+  # Tracks the last human review for compliance
+  review_audit:
+    _producer: "https://github.com/OpenLineage/OpenLineage/tree/main/integration/common/openlineage-yml"
+    _schemaURL: "https://openlineage.io/spec/facets/1-0-0/ReviewAuditFacet.json"
+    last_reviewed_at: "${REVIEW_TIMESTAMP_ISO8601}"
+    reviewed_by_brid: "${REVIEWER_BRID}"
+    last_updated_at: "${UPDATE_TIMESTAMP_ISO8601}"
+    updated_by_brid: "${UPDATER_BRID}" # Person who last modified this YAML
+
+# Input Datasets
+inputs:
+  - namespace: ${SOURCE_DATABASE_NAMESPACE} # e.g., postgres://prod-db-01:5432
+    name: ${SOURCE_SCHEMA}.${SOURCE_TABLE}
+    facets:
+      dataSource:
+        name: ${SOURCE_DATASOURCE_NAME}
+        uri: ${SOURCE_DATASOURCE_URI}
+
+# Output Datasets & Column Lineage
+outputs:
+  - namespace: ${TARGET_DATABASE_NAMESPACE}
+    name: ${TARGET_SCHEMA}.${TARGET_TABLE}
+    facets:
+      dataSource:
+        name: ${TARGET_DATASOURCE_NAME}
+        uri: ${TARGET_DATASOURCE_URI}
+      schema:
+        fields:
+          - name: ${TARGET_COLUMN_1}
+            type: ${COLUMN_TYPE}
+            description: ${COLUMN_DESCRIPTION}
+          - name: ${TARGET_COLUMN_2}
+            type: ${COLUMN_TYPE}
+            description: ${COLUMN_DESCRIPTION}
+    
+    # Column-level Lineage Mapping
+    columnLineage:
+      ${TARGET_COLUMN_1}:
+        - namespace: ${SOURCE_DATABASE_NAMESPACE}
+          name: ${SOURCE_SCHEMA}.${SOURCE_TABLE}
+          field: ${SOURCE_COLUMN_A}
+          transformationType: IDENTITY # IDENTITY, TRANSFORM, MASKED
+          transformationDescription: "Direct map"
+      
+      ${TARGET_COLUMN_2}:
+        - namespace: ${SOURCE_DATABASE_NAMESPACE}
+          name: ${SOURCE_SCHEMA}.${SOURCE_TABLE}
+          field: ${SOURCE_COLUMN_B}
+          transformationType: TRANSFORM
+          transformationDescription: "${TRANSFORMATION_LOGIC}" # e.g., "UPPER(field)"

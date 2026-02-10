@@ -147,14 +147,22 @@ def load_plugins_from_directory(facets_dir: Path):
 
 def init_plugins(root_folder: Path):
     """Initialize all plugins from config and facets directory."""
+    root_folder = Path(root_folder)
+    
     # Load from config
     config_path = root_folder / 'openlineage.yaml'
     config = load_config(config_path)
     load_custom_facets_from_config(config)
     
-    # Load from facets directory
+    # Load from facets directory relative to root_folder
     facets_dir = root_folder / 'facets'
     load_plugins_from_directory(facets_dir)
+    
+    # Also load from facets directory at project root (parent of src/)
+    project_root = Path(__file__).parent.parent
+    project_facets_dir = project_root / 'facets'
+    if project_facets_dir != facets_dir.resolve():
+        load_plugins_from_directory(project_facets_dir)
     
     return config
 

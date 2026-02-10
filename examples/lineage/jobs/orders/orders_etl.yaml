@@ -1,18 +1,18 @@
-# Orders ETL Job - Transform raw orders to fact table
 version: 1
 kind: job
 id: orders_etl
+namespace: airflow
 
-namespace: data-platform
-name: orders-etl-job
+name: "orders-etl-job"
+description: "Transforms raw order data into analytics fact table with calculated total amounts"
+jobPath: "/etl/orders/daily_fact_load.py"
+enabled: true
 
-jobType:
-  processingType: BATCH
-  integration: gitlab-yaml-tool
-  jobType: ETL
+applicationId: "ecommerce.order_processing_service"
 
-documentation:
-  description: "Transforms raw order data into analytics fact table with calculated total amounts"
+execution:
+  type: "BATCH"
+  schedule: "0 4 * * *" # Daily at 4 AM
 
 inputs:
   - ref: raw_orders
@@ -47,5 +47,29 @@ outputs:
       order_date:
         - inputField: order_date
           inputDataset: raw_orders
-          transformation: TRANSFORM
+          transformation: CAST
           description: "Cast to date (truncate time)"
+
+extractorMetadata:
+  type: "MANUAL"
+  confidence: 0.95
+  toolName: "Lineage Designer"
+  toolVersion: "1.0.0"
+
+reviewMetadata:
+  lastReviewDate: "2023-10-15"
+  lastReviewedByBrid: "BRID-223344"
+  reviewStatus: "APPROVED"
+
+ownership:
+  owners:
+    - name: "Data Engineering"
+      type: "TEAM"
+      email: "data-eng@example.com"
+      brid: "BRID-112233"
+
+tags:
+  - etl
+  - daily
+  - commerce
+  - fact-load

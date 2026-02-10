@@ -1,0 +1,31 @@
+# Application Entity Template
+version: 1
+kind: application
+id: ${APPLICATION_ID} # e.g., "crm.customer_portal"
+
+name: ${APPLICATION_NAME}
+description: |
+  ${APPLICATION_DESCRIPTION}
+
+owner:
+  team: ${OWNER_TEAM}
+  brid: ${OWNER_BRID}
+  email: ${OWNER_EMAIL}
+
+versions:
+  - version: "${VERSION_NUMBER}"
+    releaseDate: "${RELEASE_DATE}"
+    changeLog: "${CHANGE_LOG_LINK}"
+
+environments:
+  - name: ${ENVIRONMENT_NAME} # e.g., "PROD", "UAT"
+    url: ${ENVIRONMENT_URL}
+    description: ${ENVIRONMENT_DESCRIPTION}
+
+jobs:
+  - ref: ${JOB_ID_REF_1}
+  - ref: ${JOB_ID_REF_2}
+
+tags:
+  - ${TAG_1}
+  - ${TAG_2}

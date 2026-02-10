@@ -6,11 +6,133 @@ To create your own facet plugin:
 2. Define a FacetPlugin subclass
 3. Implement the register() function
 
-This example shows how to create a data quality facet.
+This file defines enterprise-specific facets for OpenLineage.
 """
 
 from src.plugins import FacetPlugin, FacetRegistry
-from typing import List
+from typing import List, Dict, Any
+
+
+class CatalogueFacet(FacetPlugin):
+    """Facet for data catalogue metadata (e.g., Alation)."""
+    
+    def __init__(self):
+        super().__init__(
+            name="catalogue",
+            schema_url="https://github.com/openlineage/OpenLineage/blob/main/spec/facets/CatalogueDatasetFacet.json"
+        )
+    
+    def validate(self, data: dict) -> List[str]:
+        return [] # Simplified validation
+    
+    def transform(self, data: dict) -> dict:
+        return {
+            "alationId": data.get("alationId"),
+            "catalogueUrl": data.get("catalogueUrl"),
+            "certificationType": data.get("certificationType")
+        }
+
+
+class CDEFacet(FacetPlugin):
+    """Facet for Critical Data Element (CDE) links."""
+    
+    def __init__(self):
+        super().__init__(
+            name="cde",
+            schema_url="https://github.com/openlineage/OpenLineage/blob/main/spec/facets/CDEDatasetFacet.json"
+        )
+    
+    def validate(self, data: dict) -> List[str]:
+        return []
+    
+    def transform(self, data: dict) -> dict:
+        # Expecting a list of CDE links in the 'cdeLinks' field of the dataset
+        if "cdeLinks" in data:
+            return {"cdeLinks": data["cdeLinks"]}
+        return {"cdeLinks": data} # fallback if passed directly
+
+
+class SystemFacet(FacetPlugin):
+    """Facet for system information."""
+    
+    def __init__(self):
+        super().__init__(
+            name="system",
+            schema_url="https://github.com/openlineage/OpenLineage/blob/main/spec/facets/SystemDatasetFacet.json"
+        )
+    
+    def validate(self, data: dict) -> List[str]:
+        return []
+    
+    def transform(self, data: dict) -> dict:
+        return {
+            "name": data.get("name"),
+            "type": data.get("type"),
+            "description": data.get("description")
+        }
+
+
+class ApplicationFacet(FacetPlugin):
+    """Facet for Application metadata linked to a Job."""
+    
+    def __init__(self):
+        super().__init__(
+            name="application",
+            schema_url="https://github.com/openlineage/OpenLineage/blob/main/spec/facets/ApplicationJobFacet.json"
+        )
+    
+    def validate(self, data: dict) -> List[str]:
+        return []
+    
+    def transform(self, data: dict) -> dict:
+        return {
+            "applicationId": data.get("id"),
+            "name": data.get("name"),
+            "description": data.get("description"),
+            "owner": data.get("owner"),
+            "version": data.get("version")
+        }
+
+
+class ExtractorFacet(FacetPlugin):
+    """Facet for Extractor metadata."""
+    
+    def __init__(self):
+        super().__init__(
+            name="extractor",
+            schema_url="https://github.com/openlineage/OpenLineage/blob/main/spec/facets/ExtractorJobFacet.json"
+        )
+    
+    def validate(self, data: dict) -> List[str]:
+        return []
+    
+    def transform(self, data: dict) -> dict:
+        return {
+            "type": data.get("type"),
+            "confidence": data.get("confidence"),
+            "toolName": data.get("toolName"),
+            "toolVersion": data.get("toolVersion")
+        }
+
+
+class ReviewFacet(FacetPlugin):
+    """Facet for Code/Job Review metadata."""
+    
+    def __init__(self):
+        super().__init__(
+            name="review",
+            schema_url="https://github.com/openlineage/OpenLineage/blob/main/spec/facets/ReviewJobFacet.json"
+        )
+    
+    def validate(self, data: dict) -> List[str]:
+        return []
+    
+    def transform(self, data: dict) -> dict:
+        return {
+            "lastReviewDate": data.get("lastReviewDate"),
+            "lastReviewedByBrid": data.get("lastReviewedByBrid"),
+            "reviewStatus": data.get("reviewStatus")
+        }
 
 
 class DataQualityFacet(FacetPlugin):
@@ -19,96 +141,30 @@ class DataQualityFacet(FacetPlugin):
     def __init__(self):
         super().__init__(
             name="dataQuality",
-            schema_url="https://your-org.com/facets/data-quality-v1.json"
+            schema_url="https://github.com/openlineage/OpenLineage/blob/main/spec/facets/DataQualityDatasetFacet.json"
         )
     
     def validate(self, data: dict) -> List[str]:
-        """Validate data quality facet data."""
-        errors = []
-        
-        if 'score' in data:
-            score = data['score']
-            if not isinstance(score, (int, float)):
-                errors.append("score must be a number")
-            elif score < 0 or score > 100:
-                errors.append("score must be between 0 and 100")
-        
-        if 'checks' in data and not isinstance(data['checks'], list):
-            errors.append("checks must be a list")
-        
-        return errors
-    
-    def transform(self, data: dict) -> dict:
-        """Transform data quality data."""
-        result = {}
-        
-        if 'score' in data:
-            result['qualityScore'] = float(data['score'])
-        
-        if 'checks' in data:
-            result['qualityChecks'] = [
-                {
-                    "checkName": check.get('name', 'unnamed'),
-                    "passed": check.get('passed', False),
-                    "message": check.get('message')
-                }
-                for check in data['checks']
-            ]
-        
-        if 'lastChecked' in data:
-            result['lastCheckedAt'] = data['lastChecked']
-        
-        return result
-
-
-class CostFacet(FacetPlugin):
-    """Custom facet for tracking job execution costs."""
-    
-    def __init__(self):
-        super().__init__(
-            name="cost",
-            schema_url="https://your-org.com/facets/cost-v1.json"
-        )
-    
-    def validate(self, data: dict) -> List[str]:
-        errors = []
-        
-        if 'computeUnits' in data:
-            if not isinstance(data['computeUnits'], (int, float)):
-                errors.append("computeUnits must be a number")
-        
-        if 'estimatedCost' in data:
-            if not isinstance(data['estimatedCost'], (int, float)):
-                errors.append("estimatedCost must be a number")
-        
-        return errors
+        return []
     
     def transform(self, data: dict) -> dict:
         return {
-            "computeUnits": data.get('computeUnits', 0),
-            "estimatedCostUSD": data.get('estimatedCost', 0),
-            "currency": data.get('currency', 'USD')
+            "completeness": data.get("completeness"),
+            "accuracy": data.get("accuracy"),
+            "lastChecked": data.get("lastChecked"),
+            "reportUrl": data.get("reportUrl")
         }
 
 
 def register(registry: FacetRegistry):
-    """Register custom facets with the registry.
-    
-    This function is called automatically when the plugin is loaded.
-    """
-    # Register dataset facet
+    """Register custom facets with the registry."""
+    # Register dataset facets
+    registry.register_dataset_facet("catalogue", CatalogueFacet())
+    registry.register_dataset_facet("cde", CDEFacet())
+    registry.register_dataset_facet("system", SystemFacet())
     registry.register_dataset_facet("dataQuality", DataQualityFacet())
     
-    # Register job facet
-    registry.register_job_facet("cost", CostFacet())
-    
-    # You can also register custom transformers
-    def mask_pii(value: str) -> str:
-        """Custom transformer to mask PII data."""
-        if not value:
-            return value
-        if len(value) <= 4:
-            return "****"
-        return value[:2] + "*" * (len(value) - 4) + value[-2:]
-    
-    registry.register_transformer('MASK_PII', mask_pii)
+    # Register job facets
+    registry.register_job_facet("application", ApplicationFacet())
+    registry.register_job_facet("extractor", ExtractorFacet())
+    registry.register_job_facet("review", ReviewFacet())

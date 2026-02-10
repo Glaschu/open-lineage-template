@@ -1,0 +1,66 @@
+version: 1
+kind: dataset
+id: fact_orders
+namespace: snowflake://warehouse:5432
+
+name: "fact_orders"
+description: "Order facts for analytics with calculated totals"
+environment: "production"
+
+system:
+  name: "data-warehouse-prod"
+  type: "snowflake"
+
+structure:
+  database: "analytics"
+  schema: "public"
+  table: "fact_orders"
+  namespace: "snowflake://warehouse:5432"
+
+schema:
+  fields:
+    - name: order_key
+      type: integer
+      description: "Surrogate key"
+    - name: user_id
+      type: integer
+      description: "Foreign key to user dimension"
+    - name: product_id
+      type: integer
+    - name: quantity
+      type: integer
+    - name: total_amount
+      type: decimal(10,2)
+      description: "quantity * unit_price"
+    - name: order_date
+      type: date
+    - name: processed_at
+      type: timestamp
+
+catalogueReference:
+  alationId: "7788"
+  catalogueUrl: "https://alation.example.com/table/7788"
+  certificationType: "GOLD"
+
+ownership:
+  owners:
+    - name: "Analytics Team"
+      type: "TEAM"
+      email: "analytics@example.com"
+      brid: "BRID-998877"
+
+freshness:
+  lastUpdated: "2023-10-27T11:30:00Z"
+  updateFrequency: "DAILY"
+
+dataQuality:
+  completeness: 1.0
+  accuracy: 1.0
+  lastChecked: "2023-10-27T11:35:00Z"
+  reportUrl: "https://dq.example.com/reports/fact_orders"
+
+tags:
+  - warehouse
+  - fact
+  - orders
+  - analytics-ready

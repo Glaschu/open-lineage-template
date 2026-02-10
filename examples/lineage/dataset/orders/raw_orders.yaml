@@ -1,0 +1,63 @@
+version: 1
+kind: dataset
+id: raw_orders
+namespace: postgres://source-db:5432
+
+name: "raw_orders"
+description: "Raw order transactions from e-commerce platform"
+environment: "production"
+
+system:
+  name: "source-db-prod"
+  type: "postgres"
+
+structure:
+  database: "order_db"
+  schema: "public"
+  table: "orders"
+  namespace: "postgres://source-db:5432"
+
+schema:
+  fields:
+    - name: order_id
+      type: integer
+      description: "Primary key"
+    - name: user_id
+      type: integer
+      description: "Foreign key to users table"
+    - name: product_id
+      type: integer
+    - name: quantity
+      type: integer
+    - name: unit_price
+      type: decimal(10,2)
+    - name: order_date
+      type: timestamp
+    - name: status
+      type: varchar(20)
+
+catalogueReference:
+  alationId: "5566"
+  catalogueUrl: "https://alation.example.com/table/5566"
+  certificationType: "BRONZE"
+
+ownership:
+  owners:
+    - name: "Commerce Team"
+      type: "TEAM"
+      email: "commerce@example.com"
+      brid: "BRID-334455"
+
+freshness:
+  lastUpdated: "2023-10-27T11:00:00Z"
+  updateFrequency: "REALTIME"
+
+dataQuality:
+  completeness: 1.0
+  accuracy: 0.98
+  lastChecked: "2023-10-27T11:05:00Z"
+
+tags:
+  - source
+  - orders
+  - transactions

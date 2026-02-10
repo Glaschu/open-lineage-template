@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Dataset, SchemaField, Owner } from '../types';
+import type { Dataset, SchemaField, Owner, CdeLink } from '../types';
 import './forms.css';
 
 interface DatasetFormProps {
@@ -17,10 +17,6 @@ export function DatasetForm({ dataset, onSave, onCancel }: DatasetFormProps) {
 
         if (!data.id.trim()) {
             setError('Dataset ID is required');
-            return;
-        }
-        if (!data.namespace.trim()) {
-            setError('Namespace is required');
             return;
         }
         if (!data.name.trim()) {
@@ -92,6 +88,28 @@ export function DatasetForm({ dataset, onSave, onCancel }: DatasetFormProps) {
         }));
     };
 
+    const addCdeLink = () => {
+        setData(prev => ({
+            ...prev,
+            cdeLinks: [...(prev.cdeLinks || []), { cdeId: '', cdeName: '', cdeUrl: '', mappingType: 'Direct' }]
+        }));
+    };
+
+    const updateCdeLink = (index: number, link: Partial<CdeLink>) => {
+        setData(prev => {
+            const newLinks = [...(prev.cdeLinks || [])];
+            newLinks[index] = { ...newLinks[index], ...link };
+            return { ...prev, cdeLinks: newLinks };
+        });
+    };
+
+    const removeCdeLink = (index: number) => {
+        setData(prev => ({
+            ...prev,
+            cdeLinks: (prev.cdeLinks || []).filter((_, i) => i !== index)
+        }));
+    };
+
     return (
         <form className="form" onSubmit={handleSubmit}>
             <h2>{dataset.id ? 'Edit Dataset' : 'New Dataset'}</h2>
@@ -106,19 +124,17 @@ export function DatasetForm({ dataset, onSave, onCancel }: DatasetFormProps) {
                         <input
                             type="text"
                             value={data.id}
-                            onChange={e => setData(prev => ({ ...prev, id: e.target.value.replace(/[^a-zA-Z0-9_-]/g, '_') }))}
-                            placeholder="e.g., raw_users"
+                            onChange={e => setData(prev => ({ ...prev, id: e.target.value.replace(/[^a-zA-Z0-9_.-]/g, '_') }))}
+                            placeholder="e.g., crm.customer_master"
                         />
                     </label>
-                </div>
-                <div className="form-row">
                     <label>
-                        Namespace *
+                        Environment
                         <input
                             type="text"
-                            value={data.namespace}
-                            onChange={e => setData(prev => ({ ...prev, namespace: e.target.value }))}
-                            placeholder='e.g., postgres://host:5432'
+                            value={data.environment || ''}
+                            onChange={e => setData(prev => ({ ...prev, environment: e.target.value }))}
+                            placeholder="e.g., PROD"
                         />
                     </label>
                 </div>
@@ -129,7 +145,7 @@ export function DatasetForm({ dataset, onSave, onCancel }: DatasetFormProps) {
                             type="text"
                             value={data.name}
                             onChange={e => setData(prev => ({ ...prev, name: e.target.value }))}
-                            placeholder="e.g., public.users"
+                            placeholder="e.g., Customer Master"
                         />
                     </label>
                 </div>
@@ -140,6 +156,145 @@ export function DatasetForm({ dataset, onSave, onCancel }: DatasetFormProps) {
                             value={data.description || ''}
                             onChange={e => setData(prev => ({ ...prev, description: e.target.value }))}
                             placeholder="Human-readable description"
+                        />
+                    </label>
+                </div>
+            </div>
+
+            <div className="form-section">
+                <h3>System & Structure</h3>
+                <div className="form-row">
+                    <label>
+                        System Name
+                        <input
+                            type="text"
+                            value={data.system?.name || ''}
+                            onChange={e => setData(prev => ({ ...prev, system: { ...prev.system, name: e.target.value } as any }))}
+                            placeholder="e.g., Snowflake"
+                        />
+                    </label>
+                    <label>
+                        System Type
+                        <input
+                            type="text"
+                            value={data.system?.type || ''}
+                            onChange={e => setData(prev => ({ ...prev, system: { ...prev.system, type: e.target.value } as any }))}
+                            placeholder="e.g., DataWarehouse"
+                        />
+                    </label>
+                </div>
+                <div className="form-row">
+                    <label>
+                        Database
+                        <input
+                            type="text"
+                            value={data.structure?.database || ''}
+                            onChange={e => setData(prev => ({ ...prev, structure: { ...prev.structure, database: e.target.value } as any }))}
+                        />
+                    </label>
+                    <label>
+                        Schema
+                        <input
+                            type="text"
+                            value={data.structure?.schema || ''}
+                            onChange={e => setData(prev => ({ ...prev, structure: { ...prev.structure, schema: e.target.value } as any }))}
+                        />
+                    </label>
+                    <label>
+                        Table
+                        <input
+                            type="text"
+                            value={data.structure?.table || ''}
+                            onChange={e => setData(prev => ({ ...prev, structure: { ...prev.structure, table: e.target.value } as any }))}
+                        />
+                    </label>
+                </div>
+            </div>
+
+            <div className="form-section">
+                <h3>Catalogue & CDE</h3>
+                <div className="form-row">
+                    <label>
+                        Alation ID
+                        <input
+                            type="text"
+                            value={data.catalogueReference?.alationId || ''}
+                            onChange={e => setData(prev => ({ ...prev, catalogueReference: { ...prev.catalogueReference, alationId: e.target.value } }))}
+                        />
+                    </label>
+                    <label>
+                        Alation URL
+                        <input
+                            type="text"
+                            value={data.catalogueReference?.catalogueUrl || ''}
+                            onChange={e => setData(prev => ({ ...prev, catalogueReference: { ...prev.catalogueReference, catalogueUrl: e.target.value } }))}
+                        />
+                    </label>
+                </div>
+
+                <h4>CDE Links</h4>
+                {(data.cdeLinks || []).map((link, i) => (
+                    <div key={i} className="form-row inline">
+                        <input
+                            type="text"
+                            value={link.cdeId}
+                            onChange={e => updateCdeLink(i, { cdeId: e.target.value })}
+                            placeholder="CDE ID"
+                        />
+                        <input
+                            type="text"
+                            value={link.cdeName}
+                            onChange={e => updateCdeLink(i, { cdeName: e.target.value })}
+                            placeholder="CDE Name"
+                        />
+                        <select
+                            value={link.mappingType}
+                            onChange={e => updateCdeLink(i, { mappingType: e.target.value })}
+                        >
+                            <option value="Direct">Direct</option>
+                            <option value="Derived">Derived</option>
+                        </select>
+                        <button type="button" className="btn-small danger" onClick={() => removeCdeLink(i)}>×</button>
+                    </div>
+                ))}
+                <button type="button" className="btn-secondary" onClick={addCdeLink}>+ Add CDE Link</button>
+            </div>
+
+            <div className="form-section">
+                <h3>Data Quality & Freshness</h3>
+                <div className="form-row">
+                    <label>
+                        Completeness %
+                        <input
+                            type="number"
+                            value={data.dataQuality?.completeness || ''}
+                            onChange={e => setData(prev => ({ ...prev, dataQuality: { ...prev.dataQuality, completeness: Number(e.target.value) } }))}
+                        />
+                    </label>
+                    <label>
+                        Accuracy %
+                        <input
+                            type="number"
+                            value={data.dataQuality?.accuracy || ''}
+                            onChange={e => setData(prev => ({ ...prev, dataQuality: { ...prev.dataQuality, accuracy: Number(e.target.value) } }))}
+                        />
+                    </label>
+                    <label>
+                        Last Checked
+                        <input
+                            type="date"
+                            value={data.dataQuality?.lastChecked ? new Date(data.dataQuality.lastChecked).toISOString().split('T')[0] : ''}
+                            onChange={e => setData(prev => ({ ...prev, dataQuality: { ...prev.dataQuality, lastChecked: new Date(e.target.value).toISOString() } }))}
+                        />
+                    </label>
+                </div>
+                <div className="form-row">
+                    <label>
+                        Last Updated
+                        <input
+                            type="date"
+                            value={data.freshness?.lastUpdated ? new Date(data.freshness.lastUpdated).toISOString().split('T')[0] : ''}
+                            onChange={e => setData(prev => ({ ...prev, freshness: { ...prev.freshness, lastUpdated: new Date(e.target.value).toISOString() } }))}
                         />
                     </label>
                 </div>
@@ -215,8 +370,20 @@ export function DatasetForm({ dataset, onSave, onCancel }: DatasetFormProps) {
                         >
                             <option value="TEAM">Team</option>
                             <option value="PERSON">Person</option>
-                            <option value="SERVICE">Service</option>
                         </select>
+                        <input
+                            type="text"
+                            value={owner.brid || ''}
+                            onChange={e => updateOwner(i, { brid: e.target.value })}
+                            placeholder="BRID"
+                            style={{ width: '80px' }}
+                        />
+                        <input
+                            type="text"
+                            value={owner.email || ''}
+                            onChange={e => updateOwner(i, { email: e.target.value })}
+                            placeholder="Email"
+                        />
                         <button type="button" className="btn-small danger" onClick={() => removeOwner(i)}>×</button>
                     </div>
                 ))}

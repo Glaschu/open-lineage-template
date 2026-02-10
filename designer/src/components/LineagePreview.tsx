@@ -44,7 +44,7 @@ export function LineagePreview({ datasets, jobs }: LineagePreviewProps) {
                                     <div className="job-node">
                                         <div className="node-header">{job.name}</div>
                                         <div className="node-body">
-                                            <span className="job-type">{job.jobType?.processingType || 'BATCH'}</span>
+                                            <span className="job-type">{job.execution?.type || 'BATCH'}</span>
                                         </div>
                                     </div>
                                 </div>

@@ -11,7 +11,7 @@ namespace: <system-uri>
 name: <dataset-name>
 ```
 
-## Full Example
+## Full Enterprise Example
 
 ```yaml
 version: 1
@@ -21,6 +21,11 @@ namespace: postgres://prod-db    # Required: System identifier
 name: users                      # Required: Dataset name
 
 description: Raw user data from production database
+environment: production
+
+system:
+  name: source-db-prod
+  type: postgres
 
 schema:
   fields:
@@ -30,28 +35,38 @@ schema:
     - name: email
       type: STRING
       description: User email address
-    - name: created_at
-      type: TIMESTAMP
 
 ownership:
   owners:
     - name: Data Engineering Team
       type: TEAM
-    - name: john.smith@company.com
-      type: PERSON
+      email: data-eng@example.com
+      brid: BRID-123456
+
+catalogueReference:
+  alationId: "4521"
+  catalogueUrl: "https://alation.example.com/table/4521"
+  certificationType: "GOLD"
+
+cdeLinks:
+  - cdeId: "CDE-9988"
+    cdeUrl: "https://cde.example.com/elements/9988"
+    mappingType: "EXACT_MATCH"
+
+dataQuality:
+  completeness: 0.99
+  accuracy: 1.0
+  lastChecked: "2023-10-27T09:00:00Z"
+  reportUrl: "https://dq.example.com/reports/raw_users"
 
 tags:
   - pii
   - production
-
-dataSource:
-  name: Production PostgreSQL
-  uri: jdbc:postgresql://prod-db:5432/main
 ```
 
 ## Field Reference
 
-### Required Fields
+### Core Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -59,17 +74,17 @@ dataSource:
 | `kind` | string | Always `dataset` |
 | `namespace` | string | System identifier (URI format) |
 | `name` | string | Dataset name within namespace |
+| `environment` | string | Environment (e.g., production, dev) |
 
-### Optional Fields
+### Enterprise Metadata
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | string | Unique identifier (defaults to filename) |
-| `description` | string | Human-readable description |
-| `schema` | object | Schema definition with fields |
-| `ownership` | object | Owner assignments |
-| `tags` | array | Tags for categorization |
-| `dataSource` | object | Physical data source info |
+| `system` | object | System details (name, type) |
+| `catalogueReference` | object | Link to data catalogue (Alation) |
+| `cdeLinks` | array | Links to Critical Data Elements |
+| `dataQuality` | object | DQ scores and report links |
+| `ownership` | object | Enhanced ownership (BRID, email) |
 
 ---
 
@@ -118,30 +133,27 @@ Use URI format to identify the system:
 
 ---
 
-## Ownership
+## Catalogue Reference
 
-Assign owners to track responsibility:
+Link your dataset to the enterprise data catalogue:
 
 ```yaml
-ownership:
-  owners:
-    - name: Data Team
-      type: TEAM
-    - name: jane.doe@company.com
-      type: PERSON
-    - name: etl-service
-      type: SERVICE
+catalogueReference:
+  alationId: "12345"
+  catalogueUrl: "https://..."
+  certificationType: "GOLD" # GOLD, SILVER, BRONZE, NONE
 ```
 
-### Owner Types
+## CDE Links
 
-| Type | Use For |
-|------|---------|
-| `PERSON` | Individual email addresses |
-| `TEAM` | Team or group names |
-| `SERVICE` | Service accounts or systems |
+Link to Critical Data Elements:
 
----
+```yaml
+cdeLinks:
+  - cdeId: "CDE-123"
+    cdeName: "Customer ID"
+    mappingType: "EXACT_MATCH"
+```
 
 ## Tags
 

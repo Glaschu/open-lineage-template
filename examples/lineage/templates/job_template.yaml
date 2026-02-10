@@ -1,0 +1,46 @@
+# Job Entity Template
+version: 1
+kind: job
+id: ${JOB_ID} # e.g., "etl.customer_consolidation"
+
+name: ${JOB_NAME}
+jobPath: ${JOB_PATH_OR_SCRIPT_LOCATION}
+enabled: ${IS_ENABLED_BOOLEAN}
+
+applicationId: ${APPLICATION_ID_REF} # Links to Application entity
+
+execution:
+  type: ${EXECUTION_TYPE} # BATCH, STREAMING
+  schedule: "${CRON_SCHEDULE}"
+
+inputs:
+  - ref: ${INPUT_DATASET_ID}
+
+outputs:
+  - ref: ${OUTPUT_DATASET_ID}
+    columnLineage:
+      ${OUTPUT_COLUMN}:
+        - inputDataset: ${INPUT_DATASET_ID}
+          inputField: ${INPUT_COLUMN}
+          transformation: "${TRANSFORMATION}"
+
+extractorMetadata:
+  type: ${EXTRACTOR_TYPE} # MANUAL, 3RD_PARTY_TOOL, GEN_AI
+  confidence: ${CONFIDENCE_SCORE} # 0.0 to 1.0
+  toolName: "${TOOL_NAME}"
+  toolVersion: "${TOOL_VERSION}"
+
+reviewMetadata:
+  lastReviewDate: "${REVIEW_DATE_ISO8601}"
+  lastReviewedByBrid: "${REVIEWER_BRID}"
+  reviewStatus: "${REVIEW_STATUS}" # e.g., "APPROVED", "PENDING"
+
+ownership:
+  owners:
+    - name: ${OWNER_NAME}
+      type: TEAM
+      brid: ${OWNER_BRID}
+
+tags:
+  - ${TAG_1}
+  - ${TAG_2}

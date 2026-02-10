@@ -1,15 +1,16 @@
 import { useRef, useState } from 'react';
-import type { Dataset, Job, ImportResult } from '../types';
+import type { Dataset, Job, Application, ImportResult } from '../types';
 import { parseMultipleYamlFiles } from '../types';
 import './import.css';
 
 interface ImportPanelProps {
-    onImport: (datasets: Dataset[], jobs: Job[]) => void;
+    onImport: (datasets: Dataset[], jobs: Job[], applications: Application[]) => void;
     existingDatasetIds: string[];
     existingJobIds: string[];
+    existingApplicationIds: string[];
 }
 
-export function ImportPanel({ onImport, existingDatasetIds, existingJobIds }: ImportPanelProps) {
+export function ImportPanel({ onImport, existingDatasetIds, existingJobIds, existingApplicationIds }: ImportPanelProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [result, setResult] = useState<ImportResult | null>(null);
     const [dragOver, setDragOver] = useState(false);
@@ -28,7 +29,7 @@ export function ImportPanel({ onImport, existingDatasetIds, existingJobIds }: Im
         }
 
         if (fileContents.length === 0) {
-            setResult({ datasets: [], jobs: [], errors: ['No YAML files found'] });
+            setResult({ datasets: [], jobs: [], applications: [], errors: ['No YAML files found'] });
             setImporting(false);
             return;
         }
@@ -38,12 +39,16 @@ export function ImportPanel({ onImport, existingDatasetIds, existingJobIds }: Im
         // Check for duplicates
         const duplicateDatasets = parsed.datasets.filter(d => existingDatasetIds.includes(d.id));
         const duplicateJobs = parsed.jobs.filter(j => existingJobIds.includes(j.id));
+        const duplicateApplications = parsed.applications.filter(a => existingApplicationIds.includes(a.id));
 
         if (duplicateDatasets.length > 0) {
             parsed.errors.push(`Duplicate dataset IDs: ${duplicateDatasets.map(d => d.id).join(', ')}`);
         }
         if (duplicateJobs.length > 0) {
             parsed.errors.push(`Duplicate job IDs: ${duplicateJobs.map(j => j.id).join(', ')}`);
+        }
+        if (duplicateApplications.length > 0) {
+            parsed.errors.push(`Duplicate application IDs: ${duplicateApplications.map(a => a.id).join(', ')}`);
         }
 
         setResult(parsed);
@@ -78,7 +83,9 @@ export function ImportPanel({ onImport, existingDatasetIds, existingJobIds }: Im
             // Filter out duplicates before importing
             const newDatasets = result.datasets.filter(d => !existingDatasetIds.includes(d.id));
             const newJobs = result.jobs.filter(j => !existingJobIds.includes(j.id));
-            onImport(newDatasets, newJobs);
+            const newApplications = result.applications.filter(a => !existingApplicationIds.includes(a.id));
+
+            onImport(newDatasets, newJobs, newApplications);
             setResult(null);
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
@@ -97,7 +104,7 @@ export function ImportPanel({ onImport, existingDatasetIds, existingJobIds }: Im
         <div className="import-panel">
             <h2>📥 Import YAML Files</h2>
             <p className="import-hint">
-                Upload your saved dataset and job YAML files to continue editing them.
+                Upload your saved dataset, job, and application YAML files to continue editing them.
             </p>
 
             <div
@@ -143,6 +150,20 @@ export function ImportPanel({ onImport, existingDatasetIds, existingJobIds }: Im
 
                     <div className="import-summary">
                         <div className="summary-item">
+                            <span className="summary-count">{result.applications.length}</span>
+                            <span className="summary-label">Applications</span>
+                            {result.applications.length > 0 && (
+                                <ul className="summary-list">
+                                    {result.applications.map(a => (
+                                        <li key={a.id} className={existingApplicationIds.includes(a.id) ? 'duplicate' : ''}>
+                                            {a.id}
+                                            {existingApplicationIds.includes(a.id) && <span className="dup-badge">exists</span>}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                        <div className="summary-item">
                             <span className="summary-count">{result.datasets.length}</span>
                             <span className="summary-label">Datasets</span>
                             {result.datasets.length > 0 && (
@@ -177,10 +198,13 @@ export function ImportPanel({ onImport, existingDatasetIds, existingJobIds }: Im
                         <button
                             className="btn-primary"
                             onClick={confirmImport}
-                            disabled={result.datasets.length === 0 && result.jobs.length === 0}
+                            disabled={result.datasets.length === 0 && result.jobs.length === 0 && result.applications.length === 0}
                         >
-                            Import {result.datasets.filter(d => !existingDatasetIds.includes(d.id)).length +
-                                result.jobs.filter(j => !existingJobIds.includes(j.id)).length} Items
+                            Import {
+                                result.datasets.filter(d => !existingDatasetIds.includes(d.id)).length +
+                                result.jobs.filter(j => !existingJobIds.includes(j.id)).length +
+                                result.applications.filter(a => !existingApplicationIds.includes(a.id)).length
+                            } Items
                         </button>
                     </div>
                 </div>

@@ -1,0 +1,58 @@
+# Dataset Entity Template
+version: 1
+kind: dataset
+id: ${DATASET_ID} # e.g., "crm.customer_master"
+
+name: ${DATASET_NAME}
+description: |
+  ${DATASET_DESCRIPTION}
+
+system:
+  name: ${SYSTEM_NAME} # e.g., "Salesforce", "Snowflake"
+  type: ${SYSTEM_TYPE} # e.g., "SaaS", "DataWarehouse"
+
+environment: ${ENVIRONMENT} # e.g., "PROD"
+
+structure:
+  database: ${DATABASE_NAME}
+  schema: ${SCHEMA_NAME}
+  table: ${TABLE_NAME}
+  namespace: ${NAMESPACE}
+
+schema:
+  fields:
+    - name: ${COLUMN_NAME}
+      type: ${COLUMN_TYPE}
+      description: ${COLUMN_DESCRIPTION}
+
+catalogueReference:
+  alationId: "${ALATION_ID}"
+  catalogueUrl: "${ALATION_URL}"
+  certificationType: "${CERTIFICATION_TYPE}" # e.g., "Gold", "Verified"
+
+cdeLinks:
+  - cdeId: "${CDE_ID}"
+    cdeName: "${CDE_NAME}"
+    cdeUrl: "${CDE_URL}"
+    mappingType: "${MAPPING_TYPE}" # e.g., "Direct", "Derived"
+
+ownership:
+  owners:
+    - name: ${OWNER_NAME}
+      type: ${OWNER_TYPE} # PERSON, TEAM
+      brid: ${OWNER_BRID}
+      email: ${OWNER_EMAIL}
+
+freshness:
+  lastUpdated: "${LAST_UPDATED_ISO8601}"
+  updateFrequency: "${UPDATE_FREQUENCY}"
+
+dataQuality:
+  completeness: ${COMPLETENESS_PERCENTAGE}
+  accuracy: ${ACCURACY_PERCENTAGE}
+  lastChecked: "${LAST_CHECKED_ISO8601}"
+  reportUrl: "${DQ_REPORT_URL}"
+
+tags:
+  - ${TAG_1}
+  - ${TAG_2}

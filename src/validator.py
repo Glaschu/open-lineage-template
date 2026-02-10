@@ -32,10 +32,12 @@ class SchemaValidator:
         # Load schemas
         self._dataset_schema = self._load_schema("dataset.schema.json")
         self._job_schema = self._load_schema("job.schema.json")
+        self._application_schema = self._load_schema("application.schema.json")
         
         # Create validators
         self._dataset_validator = Draft202012Validator(self._dataset_schema)
         self._job_validator = Draft202012Validator(self._job_schema)
+        self._application_validator = Draft202012Validator(self._application_schema)
     
     def _load_schema(self, filename: str) -> dict:
         """Load a JSON schema file."""
@@ -79,6 +81,23 @@ class SchemaValidator:
             List of validation errors (empty if valid)
         """
         return self._validate(data, self._job_validator, file_path, "job")
+
+    def validate_application(
+        self,
+        data: dict,
+        file_path: Optional[Path] = None
+    ) -> List[YAMLValidationError]:
+        """
+        Validate an application definition against the schema.
+        
+        Args:
+            data: Application definition dictionary
+            file_path: Optional source file path for error messages
+            
+        Returns:
+            List of validation errors (empty if valid)
+        """
+        return self._validate(data, self._application_validator, file_path, "application")
     
     def _validate(
         self,
