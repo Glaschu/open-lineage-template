@@ -7,11 +7,14 @@ This module handles:
 - Resolving dataset references in jobs to actual dataset definitions
 """
 
+import logging
 import yaml
 from pathlib import Path
 from typing import Dict, List, Tuple, Any, Optional
 
 from .exceptions import YAMLParseError, DatasetReferenceError
+
+logger = logging.getLogger(__name__)
 
 
 class LineageLoader:
@@ -59,7 +62,7 @@ class LineageLoader:
         # Check for new structure directories
         for folder in [self.applications_folder, self.datasets_folder, self.jobs_folder]:
             if not folder.exists():
-                print(f"Warning: Folder not found: {folder}. Creating it...")
+                logger.warning("Folder not found: %s. Creating it...", folder)
                 folder.mkdir(parents=True, exist_ok=True)
     
     def _load_applications(self) -> None:
@@ -74,11 +77,11 @@ class LineageLoader:
                 
             app_id = data.get("id")
             if not app_id:
-                print(f"Warning: Application in {file_path} missing ID, skipping.")
+                logger.warning("Application in %s missing ID, skipping.", file_path)
                 continue
                 
             self._applications[app_id] = data
-            print(f"  Loaded application: {app_id}")
+            logger.debug("Loaded application: %s", app_id)
 
     def _load_datasets(self) -> None:
         """Load all dataset YAML files recursively."""
@@ -86,7 +89,7 @@ class LineageLoader:
                      list(self.datasets_folder.rglob("*.yml"))
         
         if not yaml_files:
-            print(f"Warning: No dataset files found in {self.datasets_folder}")
+            logger.warning("No dataset files found in %s", self.datasets_folder)
             return
         
         for file_path in yaml_files:
@@ -105,12 +108,12 @@ class LineageLoader:
             
             # Check for duplicate IDs
             if dataset_id in self._datasets:
-                print(f"Warning: Duplicate dataset ID '{dataset_id}' in {file_path}. Using first found.")
+                logger.warning("Duplicate dataset ID '%s' in %s. Using first found.", dataset_id, file_path)
                 continue
             
             self._datasets[dataset_id] = data
             self._dataset_files[dataset_id] = file_path
-            print(f"  Loaded dataset: {dataset_id}")
+            logger.debug("Loaded dataset: %s", dataset_id)
     
     def _load_jobs(self) -> None:
         """Load all job YAML files recursively."""
@@ -118,7 +121,7 @@ class LineageLoader:
                      list(self.jobs_folder.rglob("*.yml"))
         
         if not yaml_files:
-            print(f"Warning: No job files found in {self.jobs_folder}")
+            logger.warning("No job files found in %s", self.jobs_folder)
             return
         
         for file_path in yaml_files:
@@ -128,7 +131,7 @@ class LineageLoader:
                 continue
             
             self._jobs.append((file_path, data))
-            print(f"  Loaded job: {data.get('id', 'unknown')}")
+            logger.debug("Loaded job: %s", data.get('id', 'unknown'))
     
     def _load_yaml_file(self, file_path: Path) -> dict:
         """

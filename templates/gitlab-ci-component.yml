@@ -31,33 +31,17 @@ spec:
 #         password: $OL_PASSWORD
 
 publish-lineage:
-  image: python:3.11-slim
+  # Prebuilt image — no pip install needed, runs instantly
+  image: ${CI_REGISTRY}/your-org/open-lineage-template:latest
   stage: deploy
-  
-  variables:
-    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
-  
-  cache:
-    key: openlineage-yaml-tool
-    paths:
-      - .cache/pip/
-  
-  before_script:
-    - pip install --quiet PyYAML jsonschema requests python-dateutil
   
   script:
     - |
-      echo "OpenLineage YAML Tool"
-      echo "====================="
-      
-      # Clone the tool (or use a published package)
-      pip install --quiet git+https://gitlab.com/your-org/open-lineage-template.git
-      
       # Build command arguments
       CMD="python -m src.main --root-folder $[[ inputs.root_folder ]]"
       
       if [ "$[[ inputs.dry_run ]]" = "true" ]; then
-        CMD="$CMD --dry-run"
+        CMD="$CMD --dry-run --validate-only"
       else
         CMD="$CMD --api-url $[[ inputs.api_url ]]"
         
@@ -69,6 +53,9 @@ publish-lineage:
       if [ -n "$[[ inputs.producer ]]" ]; then
         CMD="$CMD --producer $[[ inputs.producer ]]"
       fi
+      
+      # Add structured logging for CI visibility
+      CMD="$CMD --log-format text --format json"
       
       # Run the tool
       $CMD

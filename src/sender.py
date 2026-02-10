@@ -5,9 +5,12 @@ Supports authentication, retries, and detailed error reporting.
 """
 
 import json
+import logging
 import time
 from typing import Optional, List, Dict, Any
 from urllib.parse import urljoin
+
+logger = logging.getLogger(__name__)
 
 import requests
 from requests.auth import HTTPBasicAuth
@@ -88,7 +91,7 @@ class OpenLineageSender:
         """
         results = []
         for i, event in enumerate(events, 1):
-            print(f"  Sending event {i}/{len(events)}...")
+            logger.info("Sending event %d/%d...", i, len(events))
             result = self.send_event(event)
             results.append(result)
         
@@ -111,7 +114,7 @@ class OpenLineageSender:
                     raise
                 
                 if attempt < self.max_retries:
-                    print(f"    Retry {attempt + 1}/{self.max_retries} in {delay}s...")
+                    logger.info("Retry %d/%d in %ds...", attempt + 1, self.max_retries, delay)
                     time.sleep(delay)
                     delay *= 2  # Exponential backoff
         

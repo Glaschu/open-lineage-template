@@ -11,7 +11,9 @@ Usage:
 
 import argparse
 import json
+import logging
 import sys
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -27,6 +29,45 @@ from .exceptions import (
     APIError
 )
 
+logger = logging.getLogger("openlineage-yaml-tool")
+
+# Explicit exit codes
+EXIT_SUCCESS = 0
+EXIT_VALIDATION_ERROR = 1
+EXIT_API_ERROR = 2
+EXIT_CONFIG_ERROR = 3
+
+
+def _configure_logging(log_level: str, log_format: str) -> None:
+    """Configure the logging system."""
+    level = getattr(logging, log_level.upper(), logging.INFO)
+
+    if log_format == "json":
+        formatter = logging.Formatter(
+            json.dumps({
+                "timestamp": "%(asctime)s",
+                "level": "%(levelname)s",
+                "logger": "%(name)s",
+                "message": "%(message)s",
+            })
+        )
+    else:
+        formatter = logging.Formatter("%(asctime)s [%(levelname)-7s] %(message)s", datefmt="%H:%M:%S")
+
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(formatter)
+
+    root = logging.getLogger("openlineage-yaml-tool")
+    root.setLevel(level)
+    root.addHandler(handler)
+
+    # Also configure the src loggers
+    for module in ("src.loader", "src.converter", "src.sender", "src.plugins"):
+        mod_logger = logging.getLogger(module)
+        mod_logger.setLevel(level)
+        if not mod_logger.handlers:
+            mod_logger.addHandler(handler)
+
 
 def main() -> int:
     """Main entry point. Returns exit code."""
@@ -35,6 +76,9 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  # Validate YAML only — no API connection needed
+  python -m src.main --root-folder ./lineage --validate-only
+
   # Dry run - validate and show generated events
   python -m src.main --root-folder ./lineage --dry-run
 
@@ -92,6 +136,13 @@ Examples:
     )
     
     parser.add_argument(
+        "--validate-only",
+        action="store_true",
+        help="Validate YAML files only (no conversion or API calls). "
+             "Use this to check your YAML before running the pipeline."
+    )
+    
+    parser.add_argument(
         "--skip-validation",
         action="store_true",
         help="Skip OpenLineage spec validation (not recommended)"
@@ -103,120 +154,204 @@ Examples:
         help="Verbose output"
     )
     
+    parser.add_argument(
+        "--log-level",
+        type=str,
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        default="INFO",
+        help="Logging level (default: INFO)"
+    )
+    
+    parser.add_argument(
+        "--log-format",
+        type=str,
+        choices=["text", "json"],
+        default="text",
+        help="Log output format (default: text)"
+    )
+    
+    parser.add_argument(
+        "--format",
+        type=str,
+        choices=["human", "json"],
+        default="human",
+        dest="output_format",
+        help="CLI output format: 'human' for readable output, 'json' for machine-parseable summary"
+    )
+    
     args = parser.parse_args()
+    
+    # Verbose implies DEBUG
+    if args.verbose and args.log_level == "INFO":
+        args.log_level = "DEBUG"
+    
+    _configure_logging(args.log_level, args.log_format)
     
     try:
         return run(args)
+    except YAMLValidationError as e:
+        logger.error("%s", e)
+        return EXIT_VALIDATION_ERROR
+    except (YAMLParseError, DatasetReferenceError) as e:
+        logger.error("%s", e)
+        return EXIT_VALIDATION_ERROR
+    except APIError as e:
+        logger.error("%s", e)
+        return EXIT_API_ERROR
     except OpenLineageYAMLError as e:
-        print(f"\n{e}", file=sys.stderr)
-        return 1
+        logger.error("%s", e)
+        return EXIT_CONFIG_ERROR
     except KeyboardInterrupt:
-        print("\nInterrupted by user", file=sys.stderr)
+        logger.warning("Interrupted by user")
         return 130
     except Exception as e:
-        print(f"\nUnexpected error: {e}", file=sys.stderr)
-        if args.verbose:
-            import traceback
-            traceback.print_exc()
-        return 1
+        logger.exception("Unexpected error: %s", e)
+        return EXIT_CONFIG_ERROR
 
 
 def run(args: argparse.Namespace) -> int:
     """Run the conversion pipeline."""
-    print("=" * 60)
-    print("OpenLineage YAML Tool")
-    print("=" * 60)
+    start_time = time.monotonic()
+    summary = {"status": "success", "applications": 0, "datasets": 0, "jobs": 0, "events": 0, "errors": []}
+
+    logger.info("OpenLineage YAML Tool")
     
     # Step 1: Load YAML files
-    print(f"\n📁 Loading lineage definitions from: {args.root_folder}")
+    logger.info("Loading lineage definitions from: %s", args.root_folder)
     loader = LineageLoader(args.root_folder)
     applications, datasets, jobs = loader.load_all()
     
-    print(f"   Found {len(applications)} applications, {len(datasets)} datasets, and {len(jobs)} jobs")
+    summary["applications"] = len(applications)
+    summary["datasets"] = len(datasets)
+    summary["jobs"] = len(jobs)
+    logger.info("Found %d applications, %d datasets, and %d jobs", len(applications), len(datasets), len(jobs))
     
     if not jobs:
-        print("\n⚠️  No jobs found. Nothing to process.")
-        return 0
+        logger.warning("No jobs found. Nothing to process.")
+        summary["status"] = "no_jobs"
+        _output_summary(args, summary, start_time)
+        return EXIT_SUCCESS
     
-    # Step 2: Validate YAML against schemas
-    print("\n✅ Validating YAML schemas...")
+    # Step 2: Validate YAML against schemas (per-section reporting)
+    logger.info("Validating YAML schemas...")
     validator = SchemaValidator()
+    total_errors = 0
+    summary["validation"] = {"applications": [], "datasets": [], "jobs": []}
     
-    errors = []
-    
+    # ── Applications ──
+    app_errors = []
     for app_id, app_data in applications.items():
-        # Ideally we'd map ID to file path for applications too, but loader needs update or we assume
-        # For now, let's just valid
-        # Loader doesn't expose _application_files publicly in this version of the edit, 
-        # but we can try to find it or just pass None for now as it makes error less precise but works.
-        # Actually I didn't add _application_files public getter.
-        # Let's verify standard validation first.
-        app_errors = validator.validate_application(app_data, None)
-        errors.extend(app_errors)
-
+        errs = validator.validate_application(app_data, None)
+        for e in errs:
+            app_errors.append({"id": app_id, "error": e})
+    
+    if app_errors:
+        logger.error("── Applications: %d error(s) ──", len(app_errors))
+        for item in app_errors:
+            logger.error("  [%s] %s", item["id"], item["error"])
+        summary["validation"]["applications"] = [{"id": i["id"], "error": str(i["error"])} for i in app_errors]
+        total_errors += len(app_errors)
+    else:
+        logger.info("  ✓ Applications: %d file(s) valid", len(applications))
+    
+    # ── Datasets ──
+    ds_errors = []
     for dataset_id, dataset in datasets.items():
         file_path = loader._dataset_files.get(dataset_id)
-        dataset_errors = validator.validate_dataset(dataset, file_path)
-        errors.extend(dataset_errors)
+        errs = validator.validate_dataset(dataset, file_path)
+        for e in errs:
+            ds_errors.append({"id": dataset_id, "file": str(file_path or "unknown"), "error": e})
     
+    if ds_errors:
+        logger.error("── Datasets: %d error(s) ──", len(ds_errors))
+        for item in ds_errors:
+            logger.error("  [%s] %s", item["id"], item["error"])
+        summary["validation"]["datasets"] = [{"id": i["id"], "file": i["file"], "error": str(i["error"])} for i in ds_errors]
+        total_errors += len(ds_errors)
+    else:
+        logger.info("  ✓ Datasets:     %d file(s) valid", len(datasets))
+    
+    # ── Jobs ──
+    job_errors = []
     for job_file, job_data in jobs:
-        job_errors = validator.validate_job(job_data, job_file)
-        errors.extend(job_errors)
+        job_id = job_data.get("id", str(job_file))
+        errs = validator.validate_job(job_data, job_file)
+        for e in errs:
+            job_errors.append({"id": job_id, "file": str(job_file), "error": e})
     
-    if errors:
-        print(f"\n❌ Found {len(errors)} validation error(s):")
-        for error in errors:
-            print(f"\n{error}")
-        return 1
+    if job_errors:
+        logger.error("── Jobs: %d error(s) ──", len(job_errors))
+        for item in job_errors:
+            logger.error("  [%s] %s", item["id"], item["error"])
+        summary["validation"]["jobs"] = [{"id": i["id"], "file": i["file"], "error": str(i["error"])} for i in job_errors]
+        total_errors += len(job_errors)
+    else:
+        logger.info("  ✓ Jobs:         %d file(s) valid", len(jobs))
     
-    print("   All YAML files are valid")
+    if total_errors > 0:
+        logger.error("Validation failed: %d total error(s) across %d section(s)",
+                     total_errors,
+                     sum(1 for s in [app_errors, ds_errors, job_errors] if s))
+        summary["status"] = "validation_failed"
+        _output_summary(args, summary, start_time)
+        return EXIT_VALIDATION_ERROR
+    
+    logger.info("All YAML files are valid")
+    
+    # If --validate-only, stop here
+    if args.validate_only:
+        logger.info("Validation passed — exiting (--validate-only mode)")
+        summary["status"] = "validated"
+        _output_summary(args, summary, start_time)
+        return EXIT_SUCCESS
     
     # Step 3: Convert to OpenLineage events
-    print("\n🔄 Converting to OpenLineage events...")
+    logger.info("Converting to OpenLineage events...")
     converter = OpenLineageConverter(loader, producer=args.producer)
     events = converter.convert_all()
     
-    print(f"   Generated {len(events)} event(s)")
+    summary["events"] = len(events)
+    logger.info("Generated %d event(s)", len(events))
     
     # Step 4: Validate against OpenLineage spec
     if not args.skip_validation:
-        print("\n🔍 Validating against OpenLineage spec...")
+        logger.info("Validating against OpenLineage spec...")
         ol_validator = OpenLineageValidator()
         
         for i, event in enumerate(events):
             spec_errors = ol_validator.validate(event)
             if spec_errors:
                 job_name = event.get("job", {}).get("name", f"event {i+1}")
-                print(f"\n❌ Event '{job_name}' failed spec validation:")
+                logger.error("Event '%s' failed spec validation:", job_name)
                 for error in spec_errors:
-                    print(f"   - {error}")
-                return 1
+                    logger.error("  - %s", error)
+                summary["status"] = "spec_validation_failed"
+                summary["errors"] = spec_errors
+                _output_summary(args, summary, start_time)
+                return EXIT_VALIDATION_ERROR
         
-        print("   All events conform to OpenLineage spec")
+        logger.info("All events conform to OpenLineage spec")
     
     # Step 5: Output or send events
     if args.output:
-        print(f"\n💾 Writing events to: {args.output}")
+        logger.info("Writing events to: %s", args.output)
         with open(args.output, 'w', encoding='utf-8') as f:
             json.dump(events, f, indent=2)
-        print(f"   Wrote {len(events)} events")
+        logger.info("Wrote %d events", len(events))
     
     if args.dry_run:
-        print("\n📋 Dry run - events generated:")
+        logger.info("Dry run - events generated:")
         for event in events:
             job = event.get("job", {})
             inputs = len(event.get("inputs", []))
             outputs = len(event.get("outputs", []))
-            print(f"   - {job.get('namespace')}/{job.get('name')}: {inputs} inputs, {outputs} outputs")
+            logger.info("  - %s/%s: %d inputs, %d outputs", job.get('namespace'), job.get('name'), inputs, outputs)
         
         if args.verbose:
-            print("\n" + "-" * 60)
-            print("Generated Events (JSON):")
-            print("-" * 60)
-            print(json.dumps(events, indent=2))
+            logger.debug("Generated Events (JSON):\n%s", json.dumps(events, indent=2))
     
     elif args.api_url:
-        print(f"\n📤 Sending events to: {args.api_url}")
+        logger.info("Sending events to: %s", args.api_url)
         
         with OpenLineageSender(
             api_url=args.api_url,
@@ -225,17 +360,23 @@ def run(args: argparse.Namespace) -> int:
         ) as sender:
             sender.send_events(events)
         
-        print(f"   ✅ Successfully sent {len(events)} event(s)")
+        logger.info("Successfully sent %d event(s)", len(events))
     
     else:
-        print("\n⚠️  No action specified. Use --dry-run, --output, or --api-url")
-        return 0
+        logger.warning("No action specified. Use --dry-run, --output, or --api-url")
+        _output_summary(args, summary, start_time)
+        return EXIT_SUCCESS
     
-    print("\n" + "=" * 60)
-    print("✅ Complete!")
-    print("=" * 60)
-    
-    return 0
+    logger.info("Complete!")
+    _output_summary(args, summary, start_time)
+    return EXIT_SUCCESS
+
+
+def _output_summary(args: argparse.Namespace, summary: dict, start_time: float) -> None:
+    """Output a machine-readable summary if --format json is used."""
+    summary["duration_seconds"] = round(time.monotonic() - start_time, 3)
+    if getattr(args, 'output_format', 'human') == 'json':
+        print(json.dumps(summary, indent=2))
 
 
 if __name__ == "__main__":
