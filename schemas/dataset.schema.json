@@ -1,0 +1,132 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://openlineage-yaml-tool/dataset.schema.json",
+    "title": "Dataset Definition",
+    "description": "Schema for defining a dataset in the OpenLineage YAML tool",
+    "type": "object",
+    "required": [
+        "version",
+        "kind",
+        "id",
+        "namespace",
+        "name"
+    ],
+    "properties": {
+        "version": {
+            "type": "integer",
+            "const": 1,
+            "description": "Schema version"
+        },
+        "kind": {
+            "type": "string",
+            "const": "dataset",
+            "description": "Must be 'dataset'"
+        },
+        "id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "description": "Unique identifier for referencing this dataset from jobs"
+        },
+        "namespace": {
+            "type": "string",
+            "description": "Dataset namespace (e.g., postgres://host:port)"
+        },
+        "name": {
+            "type": "string",
+            "description": "Dataset name within the namespace (e.g., schema.table)"
+        },
+        "schema": {
+            "type": "object",
+            "description": "Schema facet defining the dataset structure",
+            "properties": {
+                "fields": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "name",
+                            "type"
+                        ],
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "Field/column name"
+                            },
+                            "type": {
+                                "type": "string",
+                                "description": "Field data type"
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "Optional field description"
+                            }
+                        }
+                    }
+                }
+            },
+            "required": [
+                "fields"
+            ]
+        },
+        "ownership": {
+            "type": "object",
+            "description": "Ownership facet",
+            "properties": {
+                "owners": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "name"
+                        ],
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "Owner name (person or team)"
+                            },
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "PERSON",
+                                    "TEAM",
+                                    "SERVICE"
+                                ],
+                                "default": "PERSON",
+                                "description": "Type of owner"
+                            }
+                        }
+                    }
+                }
+            },
+            "required": [
+                "owners"
+            ]
+        },
+        "dataSource": {
+            "type": "object",
+            "description": "Data source facet",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Data source name"
+                },
+                "uri": {
+                    "type": "string",
+                    "description": "Data source URI"
+                }
+            }
+        },
+        "description": {
+            "type": "string",
+            "description": "Human-readable description of the dataset"
+        },
+        "tags": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "Tags/labels for the dataset"
+        }
+    },
+    "additionalProperties": false
+}

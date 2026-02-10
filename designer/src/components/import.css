@@ -1,0 +1,186 @@
+/* Import Panel Styles */
+
+.import-panel {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+}
+
+.import-panel h2 {
+    margin: 0 0 0.5rem;
+    color: var(--accent-purple);
+}
+
+.import-hint {
+    color: var(--text-secondary);
+    margin: 0 0 1.5rem;
+}
+
+/* Drop Zone */
+.drop-zone {
+    border: 2px dashed var(--border-color);
+    border-radius: var(--radius);
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg-elevated);
+}
+
+.drop-zone:hover {
+    border-color: var(--accent-purple);
+    background: rgba(155, 93, 229, 0.05);
+}
+
+.drop-zone.drag-over {
+    border-color: var(--accent-purple);
+    background: rgba(155, 93, 229, 0.1);
+    transform: scale(1.01);
+}
+
+.drop-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.drop-zone p {
+    margin: 0 0 0.5rem;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+}
+
+.drop-hint {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+/* Import Status */
+.import-status {
+    margin-top: 1rem;
+    padding: 1rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}
+
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Import Result */
+.import-result {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: var(--bg-elevated);
+    border-radius: var(--radius);
+    border: 1px solid var(--border-color);
+}
+
+.import-result h3 {
+    margin: 0 0 1rem;
+    color: var(--text-primary);
+}
+
+.import-errors {
+    background: rgba(255, 90, 90, 0.1);
+    border: 1px solid var(--accent-red);
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.import-errors h4 {
+    margin: 0 0 0.5rem;
+    color: var(--accent-orange);
+    font-size: 0.9rem;
+}
+
+.import-errors ul {
+    margin: 0;
+    padding-left: 1.25rem;
+    color: var(--accent-orange);
+    font-size: 0.85rem;
+}
+
+.import-errors li {
+    margin-bottom: 0.25rem;
+}
+
+/* Import Summary */
+.import-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.summary-item {
+    background: var(--bg-card);
+    padding: 1rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+}
+
+.summary-count {
+    display: block;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent-blue);
+}
+
+.summary-label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.summary-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.summary-list li {
+    padding: 0.25rem 0;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.summary-list li.duplicate {
+    color: var(--text-secondary);
+    text-decoration: line-through;
+}
+
+.dup-badge {
+    font-size: 0.7rem;
+    padding: 0.1rem 0.4rem;
+    background: var(--accent-orange);
+    color: black;
+    border-radius: 4px;
+    text-decoration: none;
+}
+
+/* Import Actions */
+.import-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.import-actions button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

@@ -1,0 +1,162 @@
+/* Preview Panel */
+
+.preview-panel {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+}
+
+.preview-panel h2 {
+    margin: 0 0 1.5rem;
+    color: var(--accent-blue);
+}
+
+.lineage-diagram {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.job-flow {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 2rem;
+    padding: 1.5rem;
+    background: var(--bg-elevated);
+    border-radius: var(--radius);
+    position: relative;
+}
+
+.job-flow::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 25%;
+    right: 25%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+    z-index: 0;
+}
+
+.flow-column {
+    position: relative;
+    z-index: 1;
+}
+
+.flow-column h4 {
+    margin: 0 0 1rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.flow-column.job {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Dataset Node */
+.dataset-node {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+}
+
+.dataset-node.has-lineage {
+    border-color: var(--accent-green);
+}
+
+.dataset-node.unused {
+    opacity: 0.6;
+    border-style: dashed;
+}
+
+.node-header {
+    background: var(--bg-dark);
+    padding: 0.6rem 1rem;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.lineage-badge {
+    font-size: 0.9rem;
+}
+
+.node-subtitle {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.node-body {
+    padding: 0.5rem 1rem;
+}
+
+.field-item {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    padding: 0.2rem 0;
+}
+
+.more-fields {
+    font-size: 0.75rem;
+    color: var(--accent-blue);
+    padding: 0.2rem 0;
+}
+
+/* Job Node */
+.job-node {
+    background: var(--gradient-primary);
+    border-radius: var(--radius);
+    min-width: 150px;
+    text-align: center;
+    box-shadow: var(--shadow);
+}
+
+.job-node .node-header {
+    background: transparent;
+    color: white;
+}
+
+.job-node .node-body {
+    padding-bottom: 0.75rem;
+}
+
+.job-type {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    color: white;
+}
+
+/* Unused Datasets */
+.unused-datasets {
+    margin-top: 1rem;
+    padding-top: 1.5rem;
+    border-top: 1px dashed var(--border-color);
+}
+
+.unused-datasets h4 {
+    margin: 0 0 1rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.unused-list {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.unused-list .dataset-node {
+    min-width: 150px;
+    margin: 0;
+}

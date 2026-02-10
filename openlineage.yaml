@@ -1,0 +1,58 @@
+# OpenLineage YAML Tool Configuration
+# This file configures default values and extensibility options
+
+# Producer URL - identifies the source of lineage events
+producer: "https://github.com/your-org/your-repo"
+
+# Default namespace for datasets and jobs
+defaults:
+  namespace: "default"
+  
+# OpenLineage API endpoint (when using --send flag)
+api:
+  url: "${OPENLINEAGE_API_URL}"
+  key: "${OPENLINEAGE_API_KEY}"
+
+# Event generation options
+event:
+  # Time format for run events
+  timeFormat: "ISO8601"
+  # Include facets in events
+  includeFacets: true
+
+# Custom facet definitions (extensibility)
+# Define additional facets that can be used in your YAML definitions
+customFacets:
+  # Example: Add a custom "quality" facet for datasets
+  # quality:
+  #   schema: "https://your-org.com/facets/quality-v1.json"
+  #   properties:
+  #     - name: "score"
+  #       type: "number"
+  #     - name: "lastChecked"
+  #       type: "datetime"
+  
+  # Example: Add a custom "cost" facet for jobs
+  # cost:
+  #   schema: "https://your-org.com/facets/cost-v1.json"
+  #   properties:
+  #     - name: "computeUnits"
+  #       type: "number"
+  #     - name: "estimatedCost"
+  #       type: "number"
+
+# Validation settings
+validation:
+  # Require all referenced datasets to exist
+  strictReferences: true
+  # Require schema fields for all datasets
+  requireSchema: false
+  # Require ownership information
+  requireOwnership: false
+
+# Output settings
+output:
+  # Pretty-print JSON output
+  prettyPrint: true
+  # Include null/empty fields
+  includeEmpty: false

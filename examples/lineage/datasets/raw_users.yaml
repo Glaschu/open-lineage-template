@@ -1,0 +1,41 @@
+# Raw Users Dataset - Source System
+version: 1
+kind: dataset
+id: raw_users
+
+namespace: "postgres://source-db:5432"
+name: "public.raw_users"
+
+schema:
+  fields:
+    - name: id
+      type: integer
+      description: "Primary key"
+    - name: email
+      type: varchar(255)
+      description: "User email address"
+    - name: first_name
+      type: varchar(100)
+    - name: last_name
+      type: varchar(100)
+    - name: created_at
+      type: timestamp
+      description: "Account creation timestamp"
+    - name: status
+      type: varchar(20)
+      description: "Account status (active, inactive, suspended)"
+
+ownership:
+  owners:
+    - name: source-systems-team
+      type: TEAM
+
+dataSource:
+  name: "postgres://source-db:5432"
+  uri: "source-db"
+
+description: "Raw user data from the main application database"
+tags:
+  - pii
+  - source
+  - users

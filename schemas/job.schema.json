@@ -1,0 +1,170 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://openlineage-yaml-tool/job.schema.json",
+    "title": "Job Definition",
+    "description": "Schema for defining a job with inputs, outputs and column lineage",
+    "type": "object",
+    "required": [
+        "version",
+        "kind",
+        "id",
+        "namespace",
+        "name",
+        "inputs",
+        "outputs"
+    ],
+    "properties": {
+        "version": {
+            "type": "integer",
+            "const": 1,
+            "description": "Schema version"
+        },
+        "kind": {
+            "type": "string",
+            "const": "job",
+            "description": "Must be 'job'"
+        },
+        "id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "description": "Unique identifier for this job"
+        },
+        "namespace": {
+            "type": "string",
+            "description": "Job namespace (e.g., data-platform)"
+        },
+        "name": {
+            "type": "string",
+            "description": "Job name within the namespace"
+        },
+        "jobType": {
+            "type": "object",
+            "description": "Job type facet",
+            "properties": {
+                "processingType": {
+                    "type": "string",
+                    "enum": [
+                        "BATCH",
+                        "STREAMING",
+                        "SERVICE"
+                    ],
+                    "default": "BATCH"
+                },
+                "integration": {
+                    "type": "string",
+                    "description": "Integration name (e.g., airflow, spark)"
+                },
+                "jobType": {
+                    "type": "string",
+                    "description": "Specific job type (e.g., ETL, MODEL)"
+                }
+            }
+        },
+        "documentation": {
+            "type": "object",
+            "description": "Documentation facet",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "contentType": {
+                    "type": "string",
+                    "default": "text/plain"
+                }
+            }
+        },
+        "parent": {
+            "type": "object",
+            "description": "Parent job for job-to-job lineage",
+            "properties": {
+                "namespace": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "namespace",
+                "name"
+            ]
+        },
+        "inputs": {
+            "type": "array",
+            "description": "Input datasets (referenced by ID)",
+            "items": {
+                "type": "object",
+                "required": [
+                    "ref"
+                ],
+                "properties": {
+                    "ref": {
+                        "type": "string",
+                        "description": "Reference to dataset ID"
+                    }
+                }
+            }
+        },
+        "outputs": {
+            "type": "array",
+            "description": "Output datasets with optional column lineage",
+            "items": {
+                "type": "object",
+                "required": [
+                    "ref"
+                ],
+                "properties": {
+                    "ref": {
+                        "type": "string",
+                        "description": "Reference to dataset ID"
+                    },
+                    "columnLineage": {
+                        "type": "object",
+                        "description": "Column-level lineage mapping",
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "inputField",
+                                    "inputDataset"
+                                ],
+                                "properties": {
+                                    "inputField": {
+                                        "type": "string",
+                                        "description": "Source field name"
+                                    },
+                                    "inputDataset": {
+                                        "type": "string",
+                                        "description": "Source dataset ID"
+                                    },
+                                    "transformation": {
+                                        "type": "string",
+                                        "enum": [
+                                            "IDENTITY",
+                                            "TRANSFORM",
+                                            "AGGREGATE",
+                                            "FILTER"
+                                        ],
+                                        "default": "IDENTITY",
+                                        "description": "Type of transformation"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "description": "Description of the transformation"
+                                    },
+                                    "masking": {
+                                        "type": "boolean",
+                                        "default": false,
+                                        "description": "Whether this field is masked/anonymized"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "additionalProperties": false
+}

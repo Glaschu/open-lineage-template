@@ -1,0 +1,87 @@
+spec:
+  inputs:
+    root_folder:
+      description: "Path to lineage definitions folder (containing datasets/ and jobs/)"
+      default: "lineage"
+    api_url:
+      description: "OpenLineage API endpoint URL (e.g., https://api.example.com/api/v1/lineage)"
+    username:
+      description: "API username for basic auth"
+      default: ""
+    password:
+      description: "API password for basic auth"
+      default: ""
+    producer:
+      description: "Producer URL for OpenLineage events"
+      default: ""
+    dry_run:
+      description: "Set to 'true' to validate without sending"
+      default: "false"
+---
+# OpenLineage YAML Tool - GitLab CI Component
+#
+# Usage in your .gitlab-ci.yml:
+#
+#   include:
+#     - component: gitlab.com/your-org/open-lineage-template/publish-lineage@main
+#       inputs:
+#         root_folder: lineage
+#         api_url: https://your-openlineage-api.com/api/v1/lineage
+#         username: $OL_USERNAME
+#         password: $OL_PASSWORD
+
+publish-lineage:
+  image: python:3.11-slim
+  stage: deploy
+  
+  variables:
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  
+  cache:
+    key: openlineage-yaml-tool
+    paths:
+      - .cache/pip/
+  
+  before_script:
+    - pip install --quiet PyYAML jsonschema requests python-dateutil
+  
+  script:
+    - |
+      echo "OpenLineage YAML Tool"
+      echo "====================="
+      
+      # Clone the tool (or use a published package)
+      pip install --quiet git+https://gitlab.com/your-org/open-lineage-template.git
+      
+      # Build command arguments
+      CMD="python -m src.main --root-folder $[[ inputs.root_folder ]]"
+      
+      if [ "$[[ inputs.dry_run ]]" = "true" ]; then
+        CMD="$CMD --dry-run"
+      else
+        CMD="$CMD --api-url $[[ inputs.api_url ]]"
+        
+        if [ -n "$[[ inputs.username ]]" ]; then
+          CMD="$CMD --username $[[ inputs.username ]] --password $[[ inputs.password ]]"
+        fi
+      fi
+      
+      if [ -n "$[[ inputs.producer ]]" ]; then
+        CMD="$CMD --producer $[[ inputs.producer ]]"
+      fi
+      
+      # Run the tool
+      $CMD
+  
+  rules:
+    # Run on main/master branch pushes
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: always
+    # Run on merge requests that modify lineage files
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - $[[ inputs.root_folder ]]/**/*
+      variables:
+        # Force dry run for merge requests
+        DRY_RUN: "true"
+      when: always

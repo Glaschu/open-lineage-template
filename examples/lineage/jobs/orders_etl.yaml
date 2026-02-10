@@ -1,0 +1,51 @@
+# Orders ETL Job - Transform raw orders to fact table
+version: 1
+kind: job
+id: orders_etl
+
+namespace: data-platform
+name: orders-etl-job
+
+jobType:
+  processingType: BATCH
+  integration: gitlab-yaml-tool
+  jobType: ETL
+
+documentation:
+  description: "Transforms raw order data into analytics fact table with calculated total amounts"
+
+inputs:
+  - ref: raw_orders
+
+outputs:
+  - ref: fact_orders
+    columnLineage:
+      order_key:
+        - inputField: order_id
+          inputDataset: raw_orders
+          transformation: IDENTITY
+      user_id:
+        - inputField: user_id
+          inputDataset: raw_orders
+          transformation: IDENTITY
+      product_id:
+        - inputField: product_id
+          inputDataset: raw_orders
+          transformation: IDENTITY
+      quantity:
+        - inputField: quantity
+          inputDataset: raw_orders
+          transformation: IDENTITY
+      total_amount:
+        - inputField: quantity
+          inputDataset: raw_orders
+          transformation: AGGREGATE
+          description: "quantity * unit_price"
+        - inputField: unit_price
+          inputDataset: raw_orders
+          transformation: AGGREGATE
+      order_date:
+        - inputField: order_date
+          inputDataset: raw_orders
+          transformation: TRANSFORM
+          description: "Cast to date (truncate time)"

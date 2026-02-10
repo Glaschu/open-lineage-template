@@ -1,0 +1,56 @@
+# Users ETL Job - Transform raw users to dimension table
+version: 1
+kind: job
+id: users_etl
+
+namespace: data-platform
+name: users-etl-job
+
+jobType:
+  processingType: BATCH
+  integration: gitlab-yaml-tool
+  jobType: ETL
+
+documentation:
+  description: |
+    Transforms raw user data from the source system into an analytics-ready
+    dimension table. Includes email hashing for privacy compliance and
+    computed fields like account age.
+  contentType: text/markdown
+
+inputs:
+  - ref: raw_users
+
+outputs:
+  - ref: dim_users
+    columnLineage:
+      user_id:
+        - inputField: id
+          inputDataset: raw_users
+          transformation: IDENTITY
+          description: "Direct mapping of user ID"
+      email_hash:
+        - inputField: email
+          inputDataset: raw_users
+          transformation: TRANSFORM
+          description: "SHA256 hash for GDPR compliance"
+          masking: true
+      full_name:
+        - inputField: first_name
+          inputDataset: raw_users
+          transformation: TRANSFORM
+          description: "Concatenated with last_name"
+        - inputField: last_name
+          inputDataset: raw_users
+          transformation: TRANSFORM
+          description: "Concatenated with first_name"
+      account_age_days:
+        - inputField: created_at
+          inputDataset: raw_users
+          transformation: TRANSFORM
+          description: "CURRENT_DATE - created_at"
+      is_active:
+        - inputField: status
+          inputDataset: raw_users
+          transformation: TRANSFORM
+          description: "status = 'active'"
